@@ -50,18 +50,24 @@ export class EnvironmentInfoPage extends React.Component {
         let organization = this.props.params.organization;
         let pipeline = this.props.params.pipeline;
         let baseUrl = this.generateApiUrl(organization, pipeline);
+        let promises = [];
         Fetch.fetchJSON(baseUrl + "/runs/")
             .then(response => {
                 for(var i = 0; i < response.length; i++) {
-                    if(self.state.foundDev && self.state.foundQA && self.state.foundProd) { break; }
-                    let branchName = response[i].pipeline;
-                    let run = response[i].id;
-                    let commit = response[i].commitId;
-                    let startTime = response[i].startTime;
-                    Fetch.fetchJSON(baseUrl + "/branches/" + branchName + "/runs/" + run + "/nodes/")
-                    .then(stages => {
-                        for(var j = 0; j < stages.length; j++) {
-                            let stage = stages[j]
+                     let branchName = response[i].pipeline;
+                     let run = response[i].id;
+                     promises.push(Fetch.fetchJSON(baseUrl + "/branches/" + branchName + "/runs/" + run + "/nodes/"));
+                }
+                Promise.all(promises).then(pipelines => {
+                     let x = 0;
+                     for(var j = 0; j < pipelines.length; j++) {
+                        let branchName = response[x].pipeline;
+                        let run = response[x].id;
+                        let commit = response[x].commitId;
+                        let startTime = response[x].startTime;
+                        let stages = pipelines[j];
+                        for(var k = 0; k < stages.length; k++) {
+                            let stage = stages[k]
                             if(stage.displayName === "Development" && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
                                 self.setState({
                                     foundDev: true,
@@ -90,10 +96,11 @@ export class EnvironmentInfoPage extends React.Component {
                                 });
                             }
                         }
-                    }).catch(e => {
-                        console.log(e);
-                    });
-                }
+                        x++;
+                     }
+                }).catch(e => {
+                    console.log(e);
+                });
             }).catch(e => {
                 console.log(e);
             });
