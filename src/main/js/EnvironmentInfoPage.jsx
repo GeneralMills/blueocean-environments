@@ -68,7 +68,7 @@ export class EnvironmentInfoPage extends React.Component {
                         let stages = pipelines[j];
                         for(var k = 0; k < stages.length; k++) {
                             let stage = stages[k]
-                            if(stage.displayName === "Development" && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
+                            if(stage.displayName === "Development" && stage.result === "SUCCESS" && stage.state === "FINISHED") {
                                 self.setState({
                                     foundDev: true,
                                     devBranch: branchName,
@@ -77,7 +77,7 @@ export class EnvironmentInfoPage extends React.Component {
                                     devStartTime: startTime,
                                 });
                             }
-                            if(stage.displayName === "QA" && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
+                            if(stage.displayName === "QA" && stage.result === "SUCCESS" && stage.state === "FINISHED") {
                                 self.setState({
                                     foundQA: true,
                                     qaBranch: branchName,
@@ -86,7 +86,7 @@ export class EnvironmentInfoPage extends React.Component {
                                     qaStartTime: startTime,
                                 });
                             }
-                            if(stage.displayName === "Production" && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
+                            if(stage.displayName === "Production" && stage.result === "SUCCESS" && stage.state === "FINISHED") {
                                 self.setState({
                                     foundProd: true,
                                     prodBranch: branchName,
