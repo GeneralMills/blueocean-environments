@@ -1,20 +1,40 @@
 import { observable, action } from 'mobx';
-import { Fetch, UrlConfig, AppConfig, sseConnection, PipelineService } from '@jenkins-cd/blueocean-core-js';
+import { Fetch, UrlConfig, AppConfig } from '@jenkins-cd/blueocean-core-js';
 
-export class EnvironmentInfoService extends PipelineService {
+export class EnvironmentInfoService{
     @observable
-    environments;
+    devStages;
+    @observable
+    qaStages;
+    @observable
+    prodStages;
 
     constructor() {
-
+        this.fetchEnvironmentInfo();
     }
 
     @action
-    setEnvironments(environments) {
-        this.environments = environments;
+    setDevStages(devStages) {
+        this.devStages = devStages;
+    }
+
+    @action
+    setQaStages(qaStages) {
+        this.qaStages = qaStages;
+    }
+
+    @action
+    setProdStages(prodStages) {
+        this.prodStages = prodStages;
     }
 
     fetchEnvironmentInfo() {
+        Fetch.fetchJSON(`${UrlConfig.getRestBaseURL()}/organizations/${AppConfig.getOrganizationName()}/environments/`)
+        .then(response => {
+            this.setDevStages(response.environments[0]);
+            this.setQaStages(response.environments[1]);
+            this.setProdStages(response.environments[2]);
+        });
     }
 }
 

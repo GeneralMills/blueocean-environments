@@ -8,6 +8,7 @@ import hudson.model.Item;
 import hudson.model.Queue;
 import hudson.model.Run;
 import hudson.model.queue.SubTask;
+import io.jenkins.blueocean.environment.GlobalConfig;
 import io.jenkins.blueocean.rest.OrganizationRoute;
 import io.jenkins.blueocean.rest.factory.BluePipelineFactory;
 import io.jenkins.blueocean.rest.factory.BlueRunFactory;

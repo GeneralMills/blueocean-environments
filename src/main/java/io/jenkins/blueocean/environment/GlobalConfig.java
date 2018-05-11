@@ -1,14 +1,11 @@
-package jenkins.plugins.environments;
+package io.jenkins.blueocean.environment;
 
 import hudson.Extension;
 import net.sf.json.JSONObject;
 import jenkins.model.GlobalConfiguration;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.DataBoundConstructor;
 import hudson.util.FormValidation;
-import hudson.model.Descriptor.FormException;
-
 
 @Extension
 public class GlobalConfig extends GlobalConfiguration {

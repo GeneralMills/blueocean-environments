@@ -1,10 +1,6 @@
 import React from 'react';
-import Extensions from '@jenkins-cd/js-extensions';
-import {
-    pipelineService,
-    Paths,
-    Fetch
-} from '@jenkins-cd/blueocean-core-js';
+import environmentInfoService from './EnvironmentInfoService';
+import { Fetch, UrlConfig } from '@jenkins-cd/blueocean-core-js';
 import { observer } from 'mobx-react';
 
 @observer
@@ -36,10 +32,10 @@ export class EnvironmentInfoPage extends React.Component {
     }
 
     generateApiUrl(organization, pipeline) {
-        let baseUrl = "/jenkins/blue/rest/organizations/" + organization;
+        let baseUrl = `${UrlConfig.getRestBaseURL()}/organizations/${organization}`;
         let nestedPipeline = pipeline.split("/");
         for(var i = 0; i < nestedPipeline.length; i++) {
-            baseUrl = baseUrl + "/pipelines/" + nestedPipeline[i];
+            baseUrl = `${baseUrl}/pipelines/${nestedPipeline[i]}`;
         }
 
         return baseUrl;
@@ -48,15 +44,18 @@ export class EnvironmentInfoPage extends React.Component {
     componentDidMount() {
         var self = this;
         let organization = this.props.params.organization;
+        let devStages = environmentInfoService.devStages.split(",");
+        let qaStages = environmentInfoService.qaStages.split(",");
+        let prodStages = environmentInfoService.prodStages.split(",");
         let pipeline = this.props.params.pipeline;
         let baseUrl = this.generateApiUrl(organization, pipeline);
         let promises = [];
-        Fetch.fetchJSON(baseUrl + "/runs/")
+        Fetch.fetchJSON(`${baseUrl}/runs/`)
             .then(response => {
                 for(var i = 0; i < response.length; i++) {
                      let branchName = response[i].pipeline;
                      let run = response[i].id;
-                     promises.push(Fetch.fetchJSON(baseUrl + "/branches/" + branchName + "/runs/" + run + "/nodes/"));
+                     promises.push(Fetch.fetchJSON(`${baseUrl}/branches/${branchName}/runs/${run}/nodes/`));
                 }
                 Promise.all(promises).then(pipelines => {
                      let x = 0;
@@ -68,7 +67,7 @@ export class EnvironmentInfoPage extends React.Component {
                         let stages = pipelines[j];
                         for(var k = 0; k < stages.length; k++) {
                             let stage = stages[k]
-                            if(stage.displayName === "Development" && stage.result === "SUCCESS" && stage.state === "FINISHED") {
+                            if(devStages.includes(stage.displayName) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
                                 self.setState({
                                     foundDev: true,
                                     devBranch: branchName,
@@ -77,7 +76,7 @@ export class EnvironmentInfoPage extends React.Component {
                                     devStartTime: startTime,
                                 });
                             }
-                            if(stage.displayName === "QA" && stage.result === "SUCCESS" && stage.state === "FINISHED") {
+                            if(qaStages.includes(stage.displayName) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
                                 self.setState({
                                     foundQA: true,
                                     qaBranch: branchName,
@@ -86,7 +85,7 @@ export class EnvironmentInfoPage extends React.Component {
                                     qaStartTime: startTime,
                                 });
                             }
-                            if(stage.displayName === "Production" && stage.result === "SUCCESS" && stage.state === "FINISHED") {
+                            if(prodStages.includes(stage.displayName) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
                                 self.setState({
                                     foundProd: true,
                                     prodBranch: branchName,
