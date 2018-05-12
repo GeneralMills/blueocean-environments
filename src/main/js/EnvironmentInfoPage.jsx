@@ -108,7 +108,7 @@ export class EnvironmentInfoPage extends React.Component {
     render() {
         return (
             <div>
-                <div>
+                <div className="container">
                     <h1>Dev</h1>
                     <div>{this.state.devBranch} - {this.state.devRun}</div>
                     <div>{this.state.devCommit}</div>
