@@ -147,18 +147,6 @@ export class EnvironmentInfoPage extends React.Component {
     }
 
     render() {
-
-        var devCommit;
-        var qaCommit;
-        var prodCommit;
-
-        if(this.state.devCommit)
-            devCommit = <div className="commit">commit {this.state.devCommit}</div>;
-        if(this.state.qaCommit)
-            qaCommit = <div className="commit">commit {this.state.qaCommit}</div>;
-        if(this.state.prodCommit)
-            prodCommit = <div className="commit">commit {this.state.prodCommit}</div>;
-
         return (
             <div className="container">
                 <div>
@@ -169,8 +157,8 @@ export class EnvironmentInfoPage extends React.Component {
                         <div className="body">
                             <div className="branch">{this.state.devBranch} {this.state.devRun}</div>
                             <div className="time">{this.state.devStartTime}</div>
-                            {devCommit}
-                            <div className="pipelineText">View Pipeline</div>
+                            {this.state.devCommit ? <div className="commit">commit {this.state.devCommit}</div> : null}
+                            {this.state.devUrl ? <div className="pipelineText">View Pipeline</div> : null}
                         </div>
                      </a>
                 </div>
@@ -182,8 +170,8 @@ export class EnvironmentInfoPage extends React.Component {
                         <div className="body">
                             <div className="branch">{this.state.qaBranch} {this.state.qaRun}</div>
                             <div className="time">{this.state.qaStartTime}</div>
-                            {qaCommit}
-                            <div className="pipelineText">View Pipeline</div>
+                            {this.state.qaCommit ? <div className="commit">commit {this.state.qaCommit}</div> : null}
+                            {this.state.qaUrl ? <div className="pipelineText">View Pipeline</div> : null}
                         </div>
                     </a>
                 </div>
@@ -195,8 +183,8 @@ export class EnvironmentInfoPage extends React.Component {
                         <div className="body">
                             <div className="branch">{this.state.prodBranch} {this.state.prodRun}</div>
                             <div className="time">{this.state.prodStartTime}</div>
-                            {prodCommit}
-                            <div className="pipelineText">View Pipeline</div>
+                            {this.state.prodCommit ? <div className="commit">commit {this.state.prodCommit}</div> : null}
+                            {this.state.prodUrl ? <div className="pipelineText">View Pipeline</div> : null}
                         </div>
                     </a>
                 </div>
