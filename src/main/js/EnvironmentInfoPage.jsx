@@ -10,6 +10,9 @@ export class EnvironmentInfoPage extends React.Component {
         super(props);
 
         this.state = {
+            neverBeenRun:true,
+            activityUrl:"",
+
             foundDev:false,
             foundQA:false,
             foundProd:false,
@@ -65,9 +68,15 @@ export class EnvironmentInfoPage extends React.Component {
         let pipeline = this.props.params.pipeline;
         let baseUrl = this.generateApiUrl(organization, pipeline);
         let promises = [];
+        self.setState({
+            activityUrl: `/jenkins/blue/organizations/${organization}/${pipeline}/activity/`
+        });
         Fetch.fetchJSON(`${baseUrl}/runs/`)
             .then(response => {
                 for(var i = 0; i < response.length; i++) {
+                    self.setState({
+                        neverBeenRun: false
+                    });
                     let branchName = response[i].pipeline;
                     let run = response[i].id;
                     let isMultibranchPipeline = response[i].branch !== null;
@@ -78,6 +87,7 @@ export class EnvironmentInfoPage extends React.Component {
                     else
                         promises.push(Fetch.fetchJSON(`${baseUrl}/runs/${run}/nodes/`));
                 }
+
                 Promise.all(promises).then(pipelines => {
                      let x = 0;
                      for(var j = 0; j < pipelines.length; j++) {
@@ -148,45 +158,57 @@ export class EnvironmentInfoPage extends React.Component {
 
     render() {
         return (
-            <div className="container">
-                <div>
-                     <a href={`${this.state.devUrl}`} target="_blank">
-                        <div className="header">
-                            <div>Development</div>
-                        </div>
-                        <div className="body">
-                            <div className="branch">{this.state.devBranch} {this.state.devRun}</div>
-                            <div className="time">{this.state.devStartTime}</div>
-                            {this.state.devCommit ? <div className="commit">commit {this.state.devCommit}</div> : null}
-                            {this.state.devUrl ? <div className="pipelineText">View Pipeline</div> : null}
-                        </div>
-                     </a>
-                </div>
-                <div>
-                    <a href={`${this.state.qaUrl}`} target="_blank">
-                        <div className="header">
-                            <div>QA</div>
-                        </div>
-                        <div className="body">
-                            <div className="branch">{this.state.qaBranch} {this.state.qaRun}</div>
-                            <div className="time">{this.state.qaStartTime}</div>
-                            {this.state.qaCommit ? <div className="commit">commit {this.state.qaCommit}</div> : null}
-                            {this.state.qaUrl ? <div className="pipelineText">View Pipeline</div> : null}
-                        </div>
-                    </a>
-                </div>
-                <div>
-                    <a href={`${this.state.prodUrl}`} target="_blank">
-                        <div className="header">
-                            <div>Production</div>
-                        </div>
-                        <div className="body">
-                            <div className="branch">{this.state.prodBranch} {this.state.prodRun}</div>
-                            <div className="time">{this.state.prodStartTime}</div>
-                            {this.state.prodCommit ? <div className="commit">commit {this.state.prodCommit}</div> : null}
-                            {this.state.prodUrl ? <div className="pipelineText">View Pipeline</div> : null}
-                        </div>
-                    </a>
+            <div>
+                {this.state.neverBeenRun ? <div className="fullscreen blockscreen">
+                    <main className="PlaceholderContent NoRuns u-fill u-fade-bottom mainPopupBox" style={{top:'72px;'}}>
+                        <article>
+                            <div className="PlaceholderDialog popupBox">
+                                <h1 className="title titlePopupBox">This job has not been run</h1>
+                                <button className="icon-button dark" onClick={() => location.href = this.state.activityUrl}>Run</button>
+                            </div>
+                        </article>
+                    </main>
+                </div> : null}
+                <div className="container">
+                    <div>
+                         <a href={`${this.state.devUrl}`} target="_blank">
+                            <div className="header">
+                                <div>Development</div>
+                            </div>
+                            <div className="body">
+                                <div className="branch">{this.state.devBranch} {this.state.devRun}</div>
+                                <div className="time">{this.state.devStartTime}</div>
+                                {this.state.devCommit ? <div className="commit">commit {this.state.devCommit}</div> : null}
+                                {this.state.devUrl ? <div className="pipelineText">View Pipeline</div> : null}
+                            </div>
+                         </a>
+                    </div>
+                    <div>
+                        <a href={`${this.state.qaUrl}`} target="_blank">
+                            <div className="header">
+                                <div>QA</div>
+                            </div>
+                            <div className="body">
+                                <div className="branch">{this.state.qaBranch} {this.state.qaRun}</div>
+                                <div className="time">{this.state.qaStartTime}</div>
+                                {this.state.qaCommit ? <div className="commit">commit {this.state.qaCommit}</div> : null}
+                                {this.state.qaUrl ? <div className="pipelineText">View Pipeline</div> : null}
+                            </div>
+                        </a>
+                    </div>
+                    <div>
+                        <a href={`${this.state.prodUrl}`} target="_blank">
+                            <div className="header">
+                                <div>Production</div>
+                            </div>
+                            <div className="body">
+                                <div className="branch">{this.state.prodBranch} {this.state.prodRun}</div>
+                                <div className="time">{this.state.prodStartTime}</div>
+                                {this.state.prodCommit ? <div className="commit">commit {this.state.prodCommit}</div> : null}
+                                {this.state.prodUrl ? <div className="pipelineText">View Pipeline</div> : null}
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
         );
