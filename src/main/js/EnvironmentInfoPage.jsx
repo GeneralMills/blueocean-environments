@@ -1,7 +1,7 @@
 import React from 'react';
 import environmentInfoService from './EnvironmentInfoService';
 import moment from 'moment';
-import { Fetch, UrlConfig } from '@jenkins-cd/blueocean-core-js';
+import { Fetch, UrlConfig, capable } from '@jenkins-cd/blueocean-core-js';
 import { observer } from 'mobx-react';
 
 @observer
@@ -68,9 +68,15 @@ export class EnvironmentInfoPage extends React.Component {
         Fetch.fetchJSON(`${baseUrl}/runs/`)
             .then(response => {
                 for(var i = 0; i < response.length; i++) {
-                     let branchName = response[i].pipeline;
-                     let run = response[i].id;
-                     promises.push(Fetch.fetchJSON(`${baseUrl}/branches/${branchName}/runs/${run}/nodes/`));
+                    let branchName = response[i].pipeline;
+                    let run = response[i].id;
+                    let isMultibranchPipeline = response[i].branch !== null;
+
+                    //rest api works differently for multibranch pipelines
+                    if(isMultibranchPipeline)
+                        promises.push(Fetch.fetchJSON(`${baseUrl}/branches/${branchName}/runs/${run}/nodes/`));
+                    else
+                        promises.push(Fetch.fetchJSON(`${baseUrl}/runs/${run}/nodes/`));
                 }
                 Promise.all(promises).then(pipelines => {
                      let x = 0;
@@ -88,30 +94,46 @@ export class EnvironmentInfoPage extends React.Component {
                                     foundDev: true,
                                     devBranch: branchName,
                                     devRun: run,
-                                    devCommit: commit.substring(0, 6),
                                     devStartTime: startTime,
                                     devUrl: pipelineUrl,
                                 });
+
+                                //Non multibranch pipelines don't keep track of commits
+                                if(commit) {
+                                    self.setState({
+                                        devCommit: commit.substring(0, 6)
+                                    });
+                                }
                             }
                             if(qaStages.includes(stage.displayName) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
                                 self.setState({
                                     foundQA: true,
                                     qaBranch: branchName,
                                     qaRun: run,
-                                    qaCommit: commit.substring(0, 6),
                                     qaStartTime: startTime,
                                     qaUrl: pipelineUrl,
                                 });
+
+                                if(commit) {
+                                    self.setState({
+                                        qaCommit: commit.substring(0, 6)
+                                    });
+                                }
                             }
                             if(prodStages.includes(stage.displayName) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
                                 self.setState({
                                     foundProd: true,
                                     prodBranch: branchName,
                                     prodRun: run,
-                                    prodCommit: commit.substring(0, 6),
                                     prodStartTime: startTime,
                                     prodUrl: pipelineUrl,
                                 });
+
+                                if(commit) {
+                                    self.setState({
+                                        prodCommit: commit.substring(0, 6)
+                                    });
+                                }
                             }
                         }
                         x++;
@@ -125,6 +147,18 @@ export class EnvironmentInfoPage extends React.Component {
     }
 
     render() {
+
+        var devCommit;
+        var qaCommit;
+        var prodCommit;
+
+        if(this.state.devCommit)
+            devCommit = <div className="commit">commit {this.state.devCommit}</div>;
+        if(this.state.qaCommit)
+            qaCommit = <div className="commit">commit {this.state.qaCommit}</div>;
+        if(this.state.prodCommit)
+            prodCommit = <div className="commit">commit {this.state.prodCommit}</div>;
+
         return (
             <div className="container">
                 <div>
@@ -135,7 +169,7 @@ export class EnvironmentInfoPage extends React.Component {
                         <div className="body">
                             <div className="branch">{this.state.devBranch} {this.state.devRun}</div>
                             <div className="time">{this.state.devStartTime}</div>
-                            <div className="commit">commit {this.state.devCommit}</div>
+                            {devCommit}
                             <div className="pipelineText">View Pipeline</div>
                         </div>
                      </a>
@@ -148,7 +182,7 @@ export class EnvironmentInfoPage extends React.Component {
                         <div className="body">
                             <div className="branch">{this.state.qaBranch} {this.state.qaRun}</div>
                             <div className="time">{this.state.qaStartTime}</div>
-                            <div className="commit">commit {this.state.qaCommit}</div>
+                            {qaCommit}
                             <div className="pipelineText">View Pipeline</div>
                         </div>
                     </a>
@@ -161,7 +195,7 @@ export class EnvironmentInfoPage extends React.Component {
                         <div className="body">
                             <div className="branch">{this.state.prodBranch} {this.state.prodRun}</div>
                             <div className="time">{this.state.prodStartTime}</div>
-                            <div className="commit">commit {this.state.prodCommit}</div>
+                            {prodCommit}
                             <div className="pipelineText">View Pipeline</div>
                         </div>
                     </a>
