@@ -128,23 +128,23 @@ export class EnvironmentInfoPage extends React.Component {
         return (
             <div className="container">
                 <div>
-                    <div className="header">
-                        <div>Development</div>
-                    </div>
-                    <a href={`${this.state.devUrl}`} target="_blank">
+                     <a href={`${this.state.devUrl}`} target="_blank">
+                        <div className="header">
+                            <div>Development</div>
+                        </div>
                         <div className="body">
                             <div className="branch">{this.state.devBranch} {this.state.devRun}</div>
                             <div className="time">{this.state.devStartTime}</div>
                             <div className="commit">commit {this.state.devCommit}</div>
                             <div className="pipelineText">View Pipeline</div>
                         </div>
-                    </a>
+                     </a>
                 </div>
                 <div>
-                    <div className="header">
-                        <div>QA</div>
-                    </div>
                     <a href={`${this.state.qaUrl}`} target="_blank">
+                        <div className="header">
+                            <div>QA</div>
+                        </div>
                         <div className="body">
                             <div className="branch">{this.state.qaBranch} {this.state.qaRun}</div>
                             <div className="time">{this.state.qaStartTime}</div>
@@ -154,10 +154,10 @@ export class EnvironmentInfoPage extends React.Component {
                     </a>
                 </div>
                 <div>
-                    <div className="header">
-                        <div>Production</div>
-                    </div>
                     <a href={`${this.state.prodUrl}`} target="_blank">
+                        <div className="header">
+                            <div>Production</div>
+                        </div>
                         <div className="body">
                             <div className="branch">{this.state.prodBranch} {this.state.prodRun}</div>
                             <div className="time">{this.state.prodStartTime}</div>
