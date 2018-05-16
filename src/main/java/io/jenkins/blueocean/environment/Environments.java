@@ -38,9 +38,9 @@ public class Environments extends Resource implements OrganizationRoute {
     @Exported(inline=true)
     public String[] getEnvironments() throws Exception {
         List<String> info = new ArrayList<>();
-        info.add(GlobalConfig.get().getDevelopmentDeployStageNames());
-        info.add(GlobalConfig.get().getQaDeployStageNames());
-        info.add(GlobalConfig.get().getProdDeployStageNames());
+        info.add(GlobalConfig.get().getDevelopmentDeployStageNames().replaceAll(", ", ",").toLowerCase());
+        info.add(GlobalConfig.get().getQaDeployStageNames().replaceAll(", ", ",").toLowerCase());
+        info.add(GlobalConfig.get().getProdDeployStageNames().replaceAll(", ", ",").toLowerCase());
         return info.toArray(new String[info.size()]);
     }
 }

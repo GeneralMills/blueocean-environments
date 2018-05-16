@@ -99,7 +99,7 @@ export class EnvironmentInfoPage extends React.Component {
                         let pipelineUrl = this.generatePipelineUrl(this.props.params.organization, this.props.params.pipeline, branchName, run);
                         for(var k = 0; k < stages.length; k++) {
                             let stage = stages[k]
-                            if(devStages.includes(stage.displayName) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
+                            if(devStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
                                 self.setState({
                                     foundDev: true,
                                     devBranch: branchName,
@@ -115,7 +115,7 @@ export class EnvironmentInfoPage extends React.Component {
                                     });
                                 }
                             }
-                            if(qaStages.includes(stage.displayName) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
+                            if(qaStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
                                 self.setState({
                                     foundQA: true,
                                     qaBranch: branchName,
@@ -130,7 +130,7 @@ export class EnvironmentInfoPage extends React.Component {
                                     });
                                 }
                             }
-                            if(prodStages.includes(stage.displayName) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
+                            if(prodStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
                                 self.setState({
                                     foundProd: true,
                                     prodBranch: branchName,
