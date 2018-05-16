@@ -1,0 +1,4 @@
+<?jelly escape-by-default='true'?>
+<div>
+    Provides a page in Blue Ocean that shows what environments pipelines have been deployed to.
+</div>

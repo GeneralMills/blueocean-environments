@@ -61,4 +61,18 @@ public class GlobalConfig extends GlobalConfiguration {
 
         return FormValidation.ok();
     }
+
+    public FormValidation doCheckQaDeployStageNames(@QueryParameter String value) {
+        if (value == null || value.trim().isEmpty())
+            return FormValidation.warning("Please set a QA Deploy stage name");
+
+        return FormValidation.ok();
+    }
+
+    public FormValidation doCheckProdDeployStageNames(@QueryParameter String value) {
+        if (value == null || value.trim().isEmpty())
+            return FormValidation.warning("Please set a Production Deploy stage name");
+
+        return FormValidation.ok();
+    }
 }
