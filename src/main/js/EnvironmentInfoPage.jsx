@@ -197,9 +197,9 @@ export class EnvironmentInfoPage extends React.Component {
                                 <div>Development</div>
                             </div>
                             <div className="body">
-                                <div className="branch">{this.state.devBranch} {this.state.devRun}</div>
+                                <div className="branchName">{this.state.devBranch} {this.state.devRun}</div>
                                 <div className="time">{this.state.devStartTime}</div>
-                                {this.state.devCommit ? <div className="commit">commit {this.state.devCommit}</div> : null}
+                                {this.state.devCommit ? <div className="commitHash">commit {this.state.devCommit}</div> : null}
                                 {this.state.devUrl ? <div className="pipelineText">View Pipeline</div> : null}
                             </div>
                          </a>
@@ -210,9 +210,9 @@ export class EnvironmentInfoPage extends React.Component {
                                 <div>QA</div>
                             </div>
                             <div className="body">
-                                <div className="branch">{this.state.qaBranch} {this.state.qaRun}</div>
+                                <div className="branchName">{this.state.qaBranch} {this.state.qaRun}</div>
                                 <div className="time">{this.state.qaStartTime}</div>
-                                {this.state.qaCommit ? <div className="commit">commit {this.state.qaCommit}</div> : null}
+                                {this.state.qaCommit ? <div className="commitHash">commit {this.state.qaCommit}</div> : null}
                                 {this.state.qaUrl ? <div className="pipelineText">View Pipeline</div> : null}
                             </div>
                         </a>
@@ -223,9 +223,9 @@ export class EnvironmentInfoPage extends React.Component {
                                 <div>Production</div>
                             </div>
                             <div className="body">
-                                <div className="branch">{this.state.prodBranch} {this.state.prodRun}</div>
+                                <div className="branchName">{this.state.prodBranch} {this.state.prodRun}</div>
                                 <div className="time">{this.state.prodStartTime}</div>
-                                {this.state.prodCommit ? <div className="commit">commit {this.state.prodCommit}</div> : null}
+                                {this.state.prodCommit ? <div className="commitHash">commit {this.state.prodCommit}</div> : null}
                                 {this.state.prodUrl ? <div className="pipelineText">View Pipeline</div> : null}
                             </div>
                         </a>
