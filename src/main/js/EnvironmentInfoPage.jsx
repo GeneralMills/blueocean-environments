@@ -10,7 +10,8 @@ export class EnvironmentInfoPage extends React.Component {
         super(props);
 
         this.state = {
-            neverBeenRun:true,
+            isLoading:true,
+            neverBeenRun:false,
             activityUrl:"",
 
             foundDev:false,
@@ -78,7 +79,7 @@ export class EnvironmentInfoPage extends React.Component {
         let baseUrl = this.generateApiUrl(organization, pipeline);
         let promises = [];
         self.setState({
-            activityUrl: `/jenkins/blue/organizations/${organization}/${pipeline}/activity/`
+            activityUrl: `/jenkins/blue/organizations/${organization}/${pipeline}/activity/`,
         });
 
         //Get the pipeline object as a whole
@@ -90,9 +91,6 @@ export class EnvironmentInfoPage extends React.Component {
                 Fetch.fetchJSON(`${baseUrl}/runs/`)
                     .then(response => {
                         for(var i = 0; i < response.length; i++) {
-                            self.setState({
-                                neverBeenRun: false
-                            });
                             let branchName = response[i].pipeline;
                             let run = response[i].id;
 
@@ -105,10 +103,22 @@ export class EnvironmentInfoPage extends React.Component {
                             }
                         }
 
+                        if(response.length === 0) {
+                            self.setState({
+                                neverBeenRun: true
+                            });
+                        }
+
                         //Get the stages of each run
                         Promise.all(promises).then(pipelines => {
                              let x = 0;
                              for(var j = 0; j < pipelines.length; j++) {
+                                if(self.state.foundDev && self.state.foundQA && self.state.foundProd) {
+                                    self.setState({
+                                        isLoading: false
+                                    });
+                                    return;
+                                }
                                 let branchName = response[x].pipeline;
                                 let run = response[x].id;
                                 let commit = response[x].commitId;
@@ -166,20 +176,33 @@ export class EnvironmentInfoPage extends React.Component {
                                 }
                                 x++;
                              }
+                             self.setState({
+                                 isLoading: false
+                             });
                         }).catch(e => {
                             console.log(e);
+                            self.setState({
+                                isLoading: false
+                            });
                         });
                     }).catch(e => {
                         console.log(e);
+                        self.setState({
+                            isLoading: false
+                        });
                     });
                 }).catch(e => {
                     console.log(e);
+                    self.setState({
+                        isLoading: false
+                    });
                 });
     }
 
     render() {
         return (
             <div>
+                {this.state.isLoading ? <div className="fullscreen blockscreen"></div> : null}
                 {this.state.neverBeenRun ? <div className="fullscreen blockscreen">
                     <main className="PlaceholderContent NoRuns u-fill u-fade-bottom mainPopupBox" style={{top:'72px;'}}>
                         <article>
