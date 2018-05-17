@@ -59,6 +59,15 @@ export class EnvironmentInfoPage extends React.Component {
         return baseUrl;
     }
 
+    isMultibranchPipeline(organization, pipeline)
+    {
+        let baseUrl = this.generateApiUrl(organization, pipeline);
+        Fetch.fetchJSON(baseUrl).then(response => {
+            return response.class;
+        });
+        return false;
+    }
+
     componentDidMount() {
         var self = this;
         let organization = this.props.params.organization;
@@ -71,89 +80,101 @@ export class EnvironmentInfoPage extends React.Component {
         self.setState({
             activityUrl: `/jenkins/blue/organizations/${organization}/${pipeline}/activity/`
         });
-        Fetch.fetchJSON(`${baseUrl}/runs/`)
+
+        //Get the pipeline object as a whole
+        Fetch.fetchJSON(`${baseUrl}`)
             .then(response => {
-                for(var i = 0; i < response.length; i++) {
-                    self.setState({
-                        neverBeenRun: false
-                    });
-                    let branchName = response[i].pipeline;
-                    let run = response[i].id;
-                    let isMultibranchPipeline = response[i].branch !== null;
+                let isMultibranchPipeline = capable(response, 'io.jenkins.blueocean.rest.model.BlueMultiBranchPipeline');
 
-                    //rest api works differently for multibranch pipelines
-                    if(isMultibranchPipeline)
-                        promises.push(Fetch.fetchJSON(`${baseUrl}/branches/${branchName}/runs/${run}/nodes/`));
-                    else
-                        promises.push(Fetch.fetchJSON(`${baseUrl}/runs/${run}/nodes/`));
-                }
+                //Get the pipeline Runs
+                Fetch.fetchJSON(`${baseUrl}/runs/`)
+                    .then(response => {
+                        for(var i = 0; i < response.length; i++) {
+                            self.setState({
+                                neverBeenRun: false
+                            });
+                            let branchName = response[i].pipeline;
+                            let run = response[i].id;
 
-                Promise.all(promises).then(pipelines => {
-                     let x = 0;
-                     for(var j = 0; j < pipelines.length; j++) {
-                        let branchName = response[x].pipeline;
-                        let run = response[x].id;
-                        let commit = response[x].commitId;
-                        let startTime = moment(new Date(response[x].startTime)).format("MM/DD/YYYY HH:mma Z");
-                        let stages = pipelines[j];
-                        let pipelineUrl = this.generatePipelineUrl(this.props.params.organization, this.props.params.pipeline, branchName, run);
-                        for(var k = 0; k < stages.length; k++) {
-                            let stage = stages[k]
-                            if(devStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
-                                self.setState({
-                                    foundDev: true,
-                                    devBranch: branchName,
-                                    devRun: run,
-                                    devStartTime: startTime,
-                                    devUrl: pipelineUrl,
-                                });
-
-                                //Non multibranch pipelines don't keep track of commits
-                                if(commit) {
-                                    self.setState({
-                                        devCommit: commit.substring(0, 6)
-                                    });
-                                }
+                            //rest api works differently for multibranch pipelines
+                            if(isMultibranchPipeline) {
+                                promises.push(Fetch.fetchJSON(`${baseUrl}/branches/${branchName}/runs/${run}/nodes/`));
                             }
-                            if(qaStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
-                                self.setState({
-                                    foundQA: true,
-                                    qaBranch: branchName,
-                                    qaRun: run,
-                                    qaStartTime: startTime,
-                                    qaUrl: pipelineUrl,
-                                });
-
-                                if(commit) {
-                                    self.setState({
-                                        qaCommit: commit.substring(0, 6)
-                                    });
-                                }
-                            }
-                            if(prodStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
-                                self.setState({
-                                    foundProd: true,
-                                    prodBranch: branchName,
-                                    prodRun: run,
-                                    prodStartTime: startTime,
-                                    prodUrl: pipelineUrl,
-                                });
-
-                                if(commit) {
-                                    self.setState({
-                                        prodCommit: commit.substring(0, 6)
-                                    });
-                                }
+                            else {
+                                promises.push(Fetch.fetchJSON(`${baseUrl}/runs/${run}/nodes/`));
                             }
                         }
-                        x++;
-                     }
+
+                        //Get the stages of each run
+                        Promise.all(promises).then(pipelines => {
+                             let x = 0;
+                             for(var j = 0; j < pipelines.length; j++) {
+                                let branchName = response[x].pipeline;
+                                let run = response[x].id;
+                                let commit = response[x].commitId;
+                                let startTime = moment(new Date(response[x].startTime)).format("MM/DD/YYYY HH:mma Z");
+                                let stages = pipelines[j];
+                                let pipelineUrl = this.generatePipelineUrl(this.props.params.organization, this.props.params.pipeline, branchName, run);
+                                for(var k = 0; k < stages.length; k++) {
+                                    let stage = stages[k]
+                                    if(devStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
+                                        self.setState({
+                                            foundDev: true,
+                                            devBranch: branchName,
+                                            devRun: run,
+                                            devStartTime: startTime,
+                                            devUrl: pipelineUrl,
+                                        });
+
+                                        //Non multibranch pipelines don't keep track of commits
+                                        if(commit) {
+                                            self.setState({
+                                                devCommit: commit.substring(0, 6)
+                                            });
+                                        }
+                                    }
+                                    if(qaStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
+                                        self.setState({
+                                            foundQA: true,
+                                            qaBranch: branchName,
+                                            qaRun: run,
+                                            qaStartTime: startTime,
+                                            qaUrl: pipelineUrl,
+                                        });
+
+                                        if(commit) {
+                                            self.setState({
+                                                qaCommit: commit.substring(0, 6)
+                                            });
+                                        }
+                                    }
+                                    if(prodStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
+                                        self.setState({
+                                            foundProd: true,
+                                            prodBranch: branchName,
+                                            prodRun: run,
+                                            prodStartTime: startTime,
+                                            prodUrl: pipelineUrl,
+                                        });
+
+                                        if(commit) {
+                                            self.setState({
+                                                prodCommit: commit.substring(0, 6)
+                                            });
+                                        }
+                                    }
+                                }
+                                x++;
+                             }
+                        }).catch(e => {
+                            console.log(e);
+                        });
+                    }).catch(e => {
+                        console.log(e);
+                    });
                 }).catch(e => {
                     console.log(e);
                 });
-            }).catch(e => {
-                console.log(e);
-            });
     }
 
     render() {
