@@ -2,5 +2,5 @@
 extensions:
   - extensionPoint: jenkins.main.routes
     component: Routes
-  - extensionPoint: jenkins.blueocean.top.links
-    component: TopLink
+  - extensionPoint: jenkins.pipeline.detail.header.action
+    component: EnvironmentsLink
