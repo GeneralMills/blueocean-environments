@@ -1,8 +1,24 @@
 import React from 'react';
-import environmentInfoService from './EnvironmentInfoService';
 import moment from 'moment';
-import { Fetch, UrlConfig, capable } from '@jenkins-cd/blueocean-core-js';
+import { Link } from 'react-router';
 import { observer } from 'mobx-react';
+import Extensions from '@jenkins-cd/js-extensions';
+import { TabLink, WeatherIcon } from '@jenkins-cd/design-language';
+import { Fetch, AppConfig, UrlBuilder, UrlConfig, capable, ContentPageHeader } from '@jenkins-cd/blueocean-core-js';
+import environmentInfoService from './EnvironmentInfoService';
+
+const classicConfigLink = pipeline => {
+    let link = null;
+    if (Security.permit(pipeline).configure()) {
+        link = (
+            <a href={UrlBuilder.buildClassicConfigUrl(pipeline)} title='Configure' target="_blank">
+                <Icon size={24} icon="ActionSettings" style={{ verticalAlign: 'baseline' }} />
+            </a>
+        );
+    }
+    return link;
+};
+
 
 @observer
 export class EnvironmentInfoPage extends React.Component {
@@ -200,8 +216,38 @@ export class EnvironmentInfoPage extends React.Component {
     }
 
     render() {
+        const pipeline = this.props.params.pipeline;
+        const organization = this.props.params.organization;
+        const pageTabLinks = [
+            <TabLink to="/activity">Activity</TabLink>,
+            <TabLink to="/branches">Branches</TabLink>,
+            <TabLink to="/pr">Pull Requests'</TabLink>,
+        ];
+        const baseUrl = UrlBuilder.buildPipelineUrl(organizationName, pipeline);
+
+
+        const pageHeader =
+            <ContentPageHeader pageTabBase={baseUrl} pageTabLinks={pageTabLinks}>
+               <h1>
+                   {AppConfig.showOrg() && (
+                       <span>
+                           <Link to={orgUrl} query={location.query}>
+                               {organizationDisplayName}
+                           </Link>
+                           <span>&nbsp;/&nbsp;</span>
+                       </span>
+                   )}
+                   <Link to={activityUrl} query={location.query}>
+                       <ExpandablePath path={fullDisplayName} hideFirst className="dark-theme" iconSize={20} />
+                   </Link>
+               </h1>
+               <Extensions.Renderer extensionPoint="jenkins.pipeline.detail.header.action" store={this.context.store} pipeline={pipeline} />
+               {classicConfigLink(pipeline)}
+           </ContentPageHeader>
+
         return (
             <div>
+                {pageHeader}
                 {this.state.isLoading ? <div className="fullscreen blockscreen"></div> : null}
                 {this.state.neverBeenRun ? <div className="fullscreen blockscreen">
                     <main className="PlaceholderContent NoRuns u-fill u-fade-bottom mainPopupBox" style={{top:'72px;'}}>
@@ -258,3 +304,4 @@ export class EnvironmentInfoPage extends React.Component {
         );
     }
 };
+
