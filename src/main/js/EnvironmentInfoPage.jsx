@@ -4,21 +4,10 @@ import { Link } from 'react-router';
 import { observer } from 'mobx-react';
 import Extensions from '@jenkins-cd/js-extensions';
 import { TabLink, WeatherIcon, ExpandablePath } from '@jenkins-cd/design-language';
-import { Fetch, AppConfig, utils/UrlUtils, UrlConfig, capable, ContentPageHeader, Security, pipelineService, Paths} from '@jenkins-cd/blueocean-core-js';
+import { Fetch, AppConfig, UrlConfig, capable, ContentPageHeader, Security, pipelineService, Paths} from '@jenkins-cd/blueocean-core-js';
 import environmentInfoService from './EnvironmentInfoService';
-
-const classicConfigLink = pipeline => {
-    let link = null;
-    if (Security.permit(pipeline).configure()) {
-        link = (
-            <a href={UrlBuilder.buildClassicConfigUrl(pipeline)} title='Configure' target="_blank">
-                <Icon size={24} icon="ActionSettings" style={{ verticalAlign: 'baseline' }} />
-            </a>
-        );
-    }
-    return link;
-};
-
+import * as UrlUtils from '@jenkins-cd/blueocean-core-js';
+import { Icon } from '@jenkins-cd/react-material-icons'
 
 @observer
 export class EnvironmentInfoPage extends React.Component {
@@ -73,8 +62,9 @@ export class EnvironmentInfoPage extends React.Component {
 
         const RestPaths = Paths.rest;
         const href = RestPaths.pipeline(organization, pipeline);
-        const pipelineObject = pipelineService.fetchPipeline(href, { useCache: true, disableCapabilites: false }).then(pipeline => {
-                  this.setState({ weatherScore: pipeline.weatherScore });
+        pipelineService.fetchPipeline(href, { useCache: true, disableCapabilites: false }).then(pipeline => {
+                  this.setState({
+                        pipelineObject: pipeline});
           }).catch(e => {
             console.log(e);
           });
@@ -210,19 +200,19 @@ export class EnvironmentInfoPage extends React.Component {
         ];
         const baseUrl = this.generatePipelineUrl(organization, pipeline);
 
-        const classicConfigLink = <a href={UrlUtils.buildClassicConfigUrl(pipeline)} target="_blank"><Icon size={24} icon="settings" style={{ fill: '#fff' }} /></a>;
+        const classicConfigLink = <a href={UrlUtils.buildClassicConfigUrl(this.state.pipelineObject)} target="_blank"><Icon size={24} icon="settings" style={{ fill: '#fff' }} /></a>;
 
 
         const pageHeader =
             <ContentPageHeader pageTabBase={baseUrl} pageTabLinks={pageTabLinks}>
-                <WeatherIcon score={this.state.weatherScore} />
+                <WeatherIcon score={this.state.pipeline.weatherScore} />
                 <h1>
                     <Link to={activityUrl} query={location.query}>
                         <ExpandablePath path={pipeline} hideFirst className="dark-theme" iconSize={20} />
                     </Link>
                 </h1>
                <Extensions.Renderer extensionPoint="jenkins.pipeline.detail.header.action" store={this.context.store} pipeline={pipeline} />
-               {classicConfigLink(pipeline)}
+               {classicConfigLink}
            </ContentPageHeader>
 
         return (
