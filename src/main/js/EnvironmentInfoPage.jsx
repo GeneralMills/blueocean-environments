@@ -3,8 +3,8 @@ import moment from 'moment';
 import { Link } from 'react-router';
 import { observer } from 'mobx-react';
 import Extensions from '@jenkins-cd/js-extensions';
-import { TabLink, WeatherIcon } from '@jenkins-cd/design-language';
-import { Fetch, AppConfig, UrlBuilder, UrlConfig, capable, ContentPageHeader } from '@jenkins-cd/blueocean-core-js';
+import { TabLink, WeatherIcon, ExpandablePath } from '@jenkins-cd/design-language';
+import { Fetch, AppConfig, UrlUtils, UrlConfig, capable, ContentPageHeader, Security, pipelineService, Paths} from '@jenkins-cd/blueocean-core-js';
 import environmentInfoService from './EnvironmentInfoService';
 
 const classicConfigLink = pipeline => {
@@ -24,34 +24,7 @@ const classicConfigLink = pipeline => {
 export class EnvironmentInfoPage extends React.Component {
     constructor(props) {
         super(props);
-
-        this.state = {
-            isLoading:true,
-            neverBeenRun:false,
-            activityUrl:"",
-
-            foundDev:false,
-            foundQA:false,
-            foundProd:false,
-
-            devBranch:"",
-            devRun:"",
-            devCommit:"",
-            devStartTime:"",
-            devUrl:"",
-
-            qaBranch:"",
-            qaRun:"",
-            qaCommit:"",
-            qaStartTime:"",
-            qaUrl:"",
-
-            prodBranch:"",
-            prodRun:"",
-            prodCommit:"",
-            prodStartTime:"",
-            prodUrl:""
-        };
+        this.state = {};
     }
 
     generateApiUrl(organization, pipeline) {
@@ -97,6 +70,14 @@ export class EnvironmentInfoPage extends React.Component {
         self.setState({
             activityUrl: `/jenkins/blue/organizations/${organization}/${pipeline}/activity/`,
         });
+
+        const RestPaths = Paths.rest;
+        const href = RestPaths.pipeline(organization, pipeline);
+        const pipelineObject = pipelineService.fetchPipeline(href, { useCache: true, disableCapabilites: false }).then(pipeline => {
+                  this.setState({ weatherScore: pipeline.weatherScore });
+          }).catch(e => {
+            console.log(e);
+          });
 
         //Get the pipeline object as a whole
         Fetch.fetchJSON(`${baseUrl}`)
@@ -218,29 +199,28 @@ export class EnvironmentInfoPage extends React.Component {
     render() {
         const pipeline = this.props.params.pipeline;
         const organization = this.props.params.organization;
+        const activityUrl = UrlUtils.buildPipelineUrl(organization, pipeline, 'activity');
+        const branchesUrl = UrlUtils.buildPipelineUrl(organization, pipeline, 'branches');
+        const prUrl = UrlUtils.buildPipelineUrl(organization, pipeline, 'pr');
+
         const pageTabLinks = [
-            <TabLink to="/activity">Activity</TabLink>,
-            <TabLink to="/branches">Branches</TabLink>,
-            <TabLink to="/pr">Pull Requests'</TabLink>,
+            <Link to={activityUrl}>Activity</Link>,
+            <Link to={branchesUrl}>Branches</Link>,
+            <Link to={prUrl}>Pull Requests</Link>,
         ];
-        const baseUrl = UrlBuilder.buildPipelineUrl(organizationName, pipeline);
+        const baseUrl = this.generatePipelineUrl(organization, pipeline);
+
+        const classicConfigLink = <a href={UrlUtils.buildClassicConfigUrl(pipeline)} target="_blank"><Icon size={24} icon="settings" style={{ fill: '#fff' }} /></a>;
 
 
         const pageHeader =
             <ContentPageHeader pageTabBase={baseUrl} pageTabLinks={pageTabLinks}>
-               <h1>
-                   {AppConfig.showOrg() && (
-                       <span>
-                           <Link to={orgUrl} query={location.query}>
-                               {organizationDisplayName}
-                           </Link>
-                           <span>&nbsp;/&nbsp;</span>
-                       </span>
-                   )}
-                   <Link to={activityUrl} query={location.query}>
-                       <ExpandablePath path={fullDisplayName} hideFirst className="dark-theme" iconSize={20} />
-                   </Link>
-               </h1>
+                <WeatherIcon score={this.state.weatherScore} />
+                <h1>
+                    <Link to={activityUrl} query={location.query}>
+                        <ExpandablePath path={pipeline} hideFirst className="dark-theme" iconSize={20} />
+                    </Link>
+                </h1>
                <Extensions.Renderer extensionPoint="jenkins.pipeline.detail.header.action" store={this.context.store} pipeline={pipeline} />
                {classicConfigLink(pipeline)}
            </ContentPageHeader>
