@@ -95,7 +95,9 @@ export class EnvironmentInfoPage extends React.Component {
                                     let branchName = response[x].pipeline;
                                     let run = response[x].id;
                                     let commit = response[x].commitId;
-                                    let startTime = moment(new Date(response[x].startTime)).format("MM/DD/YYYY HH:mma Z");
+                                    let startTime = moment(new Date(response[x].startTime), "MM/DD/YYYY HH:mma");
+                                    let now = moment(new Date(), "MM/DD/YYYY HH:mma");
+                                    let difference = moment.duration(now.diff(startTime)).humanize();
                                     let stages = pipelines[j];
                                     let pipelineUrl = this.generatePipelineUrl(organization, pipeline.fullName, branchName, run);
                                     for(var k = 0; k < stages.length; k++) {
@@ -105,7 +107,8 @@ export class EnvironmentInfoPage extends React.Component {
                                                 foundDev: true,
                                                 devBranch: branchName,
                                                 devRun: run,
-                                                devStartTime: startTime,
+                                                devStartTime: startTime.format("MM/DD/YYYY HH:mma"),
+                                                devDifference: difference,
                                                 devUrl: pipelineUrl,
                                             });
 
@@ -121,7 +124,8 @@ export class EnvironmentInfoPage extends React.Component {
                                                 foundQA: true,
                                                 qaBranch: branchName,
                                                 qaRun: run,
-                                                qaStartTime: startTime,
+                                                qaStartTime: startTime.format("MM/DD/YYYY HH:mma"),
+                                                qaDifference: difference,
                                                 qaUrl: pipelineUrl,
                                             });
 
@@ -136,7 +140,8 @@ export class EnvironmentInfoPage extends React.Component {
                                                 foundProd: true,
                                                 prodBranch: branchName,
                                                 prodRun: run,
-                                                prodStartTime: startTime,
+                                                prodStartTime: startTime.format("MM/DD/YYYY HH:mma"),
+                                                prodDifference: difference,
                                                 prodUrl: pipelineUrl,
                                             });
 
@@ -230,12 +235,12 @@ export class EnvironmentInfoPage extends React.Component {
                             <div className="header">
                                 <div>Development</div>
                             </div>
-                            <div className="body">
+                            {this.state.foundDev ?  <div className="body">
                                 <div className="branchName">{this.state.devBranch} {this.state.devRun}</div>
-                                <div className="timeStamp">{this.state.devStartTime}</div>
+                                <div className="timeStamp">{this.state.devStartTime} ({this.state.devDifference} ago)</div>
                                 {this.state.devCommit ? <div className="commitHash">commit {this.state.devCommit}</div> : null}
                                 {this.state.devUrl ? <div className="pipelineText">View Pipeline</div> : null}
-                            </div>
+                            </div> : null }
                          </a>
                     </div>
                     <div>
@@ -243,12 +248,12 @@ export class EnvironmentInfoPage extends React.Component {
                             <div className="header">
                                 <div>QA</div>
                             </div>
-                            <div className="body">
+                            {this.state.foundQA ?  <div className="body">
                                 <div className="branchName">{this.state.qaBranch} {this.state.qaRun}</div>
-                                <div className="timeStamp">{this.state.qaStartTime}</div>
+                                <div className="timeStamp">{this.state.qaStartTime} ({this.state.qaDifference} ago)</div>
                                 {this.state.qaCommit ? <div className="commitHash">commit {this.state.qaCommit}</div> : null}
                                 {this.state.qaUrl ? <div className="pipelineText">View Pipeline</div> : null}
-                            </div>
+                            </div> : null }
                         </a>
                     </div>
                     <div>
@@ -256,12 +261,12 @@ export class EnvironmentInfoPage extends React.Component {
                             <div className="header">
                                 <div>Production</div>
                             </div>
-                            <div className="body">
+                            {this.state.foundProd ?  <div className="body">
                                 <div className="branchName">{this.state.prodBranch} {this.state.prodRun}</div>
-                                <div className="timeStamp">{this.state.prodStartTime}</div>
+                                <div className="timeStamp">{this.state.prodStartTime} ({this.state.prodDifference} ago)</div>
                                 {this.state.prodCommit ? <div className="commitHash">commit {this.state.prodCommit}</div> : null}
                                 {this.state.prodUrl ? <div className="pipelineText">View Pipeline</div> : null}
-                            </div>
+                            </div> : null }
                         </a>
                     </div>
                 </div>
