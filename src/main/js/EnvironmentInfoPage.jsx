@@ -3,27 +3,20 @@ import moment from 'moment';
 import { Link } from 'react-router';
 import { observer } from 'mobx-react';
 import Extensions from '@jenkins-cd/js-extensions';
-import { TabLink, WeatherIcon, ExpandablePath } from '@jenkins-cd/design-language';
-import { Fetch, AppConfig, UrlConfig, capable, ContentPageHeader, Security, pipelineService, Paths} from '@jenkins-cd/blueocean-core-js';
-import environmentInfoService from './EnvironmentInfoService';
+import { WeatherIcon, ExpandablePath } from '@jenkins-cd/design-language';
+import { Fetch, UrlConfig, capable, ContentPageHeader, pipelineService, Paths} from '@jenkins-cd/blueocean-core-js';
 import * as UrlUtils from '@jenkins-cd/blueocean-core-js';
 import { Icon } from '@jenkins-cd/react-material-icons'
+import environmentInfoService from './EnvironmentInfoService';
+
 
 @observer
 export class EnvironmentInfoPage extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {};
-    }
-
-    generateApiUrl(organization, pipeline) {
-        let baseUrl = `${UrlConfig.getRestBaseURL()}/organizations/${organization}`;
-        let nestedPipeline = pipeline.split("/");
-        for(var i = 0; i < nestedPipeline.length; i++) {
-            baseUrl = `${baseUrl}/pipelines/${nestedPipeline[i]}`;
-        }
-
-        return baseUrl;
+        this.state = {
+            pipeline: ""
+        };
     }
 
     generatePipelineUrl(organization, pipeline, branch, run) {
@@ -38,15 +31,6 @@ export class EnvironmentInfoPage extends React.Component {
         return baseUrl;
     }
 
-    isMultibranchPipeline(organization, pipeline)
-    {
-        let baseUrl = this.generateApiUrl(organization, pipeline);
-        Fetch.fetchJSON(baseUrl).then(response => {
-            return response.class;
-        });
-        return false;
-    }
-
     componentDidMount() {
         var self = this;
         let organization = this.props.params.organization;
@@ -54,7 +38,6 @@ export class EnvironmentInfoPage extends React.Component {
         let qaStages = environmentInfoService.qaStages.split(",");
         let prodStages = environmentInfoService.prodStages.split(",");
         let pipeline = this.props.params.pipeline;
-        let baseUrl = this.generateApiUrl(organization, pipeline);
         let promises = [];
         self.setState({
             activityUrl: `/jenkins/blue/organizations/${organization}/${pipeline}/activity/`,
@@ -63,109 +46,118 @@ export class EnvironmentInfoPage extends React.Component {
         const RestPaths = Paths.rest;
         const href = RestPaths.pipeline(organization, pipeline);
         pipelineService.fetchPipeline(href, { useCache: true, disableCapabilites: false }).then(pipeline => {
-                  this.setState({
-                        pipelineObject: pipeline});
-          }).catch(e => {
-            console.log(e);
-          });
+            this.setState({
+                pipelineObject: pipeline,
+                weatherScore: pipeline.weatherScore
+            });
 
-        //Get the pipeline object as a whole
-        Fetch.fetchJSON(`${baseUrl}`)
-            .then(response => {
-                let isMultibranchPipeline = capable(response, 'io.jenkins.blueocean.rest.model.BlueMultiBranchPipeline');
+            let pipelineRef = {
+                organization: organization,
+                pipeline: this.state.pipelineObject,
+            }
+            let baseUrl = UrlUtils.getRestUrl(pipelineRef)
+            Fetch.fetchJSON(`${baseUrl}`)
+                .then(response => {
+                    let isMultibranchPipeline = capable(response, 'io.jenkins.blueocean.rest.model.BlueMultiBranchPipeline');
 
-                //Get the pipeline Runs
-                Fetch.fetchJSON(`${baseUrl}/runs/`)
-                    .then(response => {
-                        for(var i = 0; i < response.length; i++) {
-                            let branchName = response[i].pipeline;
-                            let run = response[i].id;
+                    //Get the pipeline Runs
+                    Fetch.fetchJSON(`${baseUrl}/runs/`)
+                        .then(response => {
+                            for(var i = 0; i < response.length; i++) {
+                                let branchName = response[i].pipeline;
+                                let run = response[i].id;
 
-                            //rest api works differently for multibranch pipelines
-                            if(isMultibranchPipeline) {
-                                promises.push(Fetch.fetchJSON(`${baseUrl}/branches/${branchName}/runs/${run}/nodes/`));
+                                //rest api works differently for multibranch pipelines
+                                if(isMultibranchPipeline) {
+                                    promises.push(Fetch.fetchJSON(`${baseUrl}/branches/${branchName}/runs/${run}/nodes/`));
+                                }
+                                else {
+                                    promises.push(Fetch.fetchJSON(`${baseUrl}/runs/${run}/nodes/`));
+                                }
                             }
-                            else {
-                                promises.push(Fetch.fetchJSON(`${baseUrl}/runs/${run}/nodes/`));
-                            }
-                        }
 
-                        if(response.length === 0) {
-                            self.setState({
-                                neverBeenRun: true
+                            if(response.length === 0) {
+                                self.setState({
+                                    neverBeenRun: true
+                                });
+                            }
+
+                            //Get the stages of each run
+                            Promise.all(promises).then(pipelines => {
+                                 let x = 0;
+                                 for(var j = 0; j < pipelines.length; j++) {
+                                    if(self.state.foundDev && self.state.foundQA && self.state.foundProd) {
+                                        self.setState({
+                                            isLoading: false
+                                        });
+                                        return;
+                                    }
+                                    let branchName = response[x].pipeline;
+                                    let run = response[x].id;
+                                    let commit = response[x].commitId;
+                                    let startTime = moment(new Date(response[x].startTime)).format("MM/DD/YYYY HH:mma Z");
+                                    let stages = pipelines[j];
+                                    let pipelineUrl = this.generatePipelineUrl(organization, pipeline.fullName, branchName, run);
+                                    for(var k = 0; k < stages.length; k++) {
+                                        let stage = stages[k]
+                                        if(devStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
+                                            self.setState({
+                                                foundDev: true,
+                                                devBranch: branchName,
+                                                devRun: run,
+                                                devStartTime: startTime,
+                                                devUrl: pipelineUrl,
+                                            });
+
+                                            //Non multibranch pipelines don't keep track of commits
+                                            if(commit) {
+                                                self.setState({
+                                                    devCommit: commit.substring(0, 6)
+                                                });
+                                            }
+                                        }
+                                        if(qaStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
+                                            self.setState({
+                                                foundQA: true,
+                                                qaBranch: branchName,
+                                                qaRun: run,
+                                                qaStartTime: startTime,
+                                                qaUrl: pipelineUrl,
+                                            });
+
+                                            if(commit) {
+                                                self.setState({
+                                                    qaCommit: commit.substring(0, 6)
+                                                });
+                                            }
+                                        }
+                                        if(prodStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
+                                            self.setState({
+                                                foundProd: true,
+                                                prodBranch: branchName,
+                                                prodRun: run,
+                                                prodStartTime: startTime,
+                                                prodUrl: pipelineUrl,
+                                            });
+
+                                            if(commit) {
+                                                self.setState({
+                                                    prodCommit: commit.substring(0, 6)
+                                                });
+                                            }
+                                        }
+                                    }
+                                    x++;
+                                 }
+                                 self.setState({
+                                     isLoading: false
+                                 });
+                            }).catch(e => {
+                                console.log(e);
+                                self.setState({
+                                    isLoading: false
+                                });
                             });
-                        }
-
-                        //Get the stages of each run
-                        Promise.all(promises).then(pipelines => {
-                             let x = 0;
-                             for(var j = 0; j < pipelines.length; j++) {
-                                if(self.state.foundDev && self.state.foundQA && self.state.foundProd) {
-                                    self.setState({
-                                        isLoading: false
-                                    });
-                                    return;
-                                }
-                                let branchName = response[x].pipeline;
-                                let run = response[x].id;
-                                let commit = response[x].commitId;
-                                let startTime = moment(new Date(response[x].startTime)).format("MM/DD/YYYY HH:mma Z");
-                                let stages = pipelines[j];
-                                let pipelineUrl = this.generatePipelineUrl(this.props.params.organization, this.props.params.pipeline, branchName, run);
-                                for(var k = 0; k < stages.length; k++) {
-                                    let stage = stages[k]
-                                    if(devStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
-                                        self.setState({
-                                            foundDev: true,
-                                            devBranch: branchName,
-                                            devRun: run,
-                                            devStartTime: startTime,
-                                            devUrl: pipelineUrl,
-                                        });
-
-                                        //Non multibranch pipelines don't keep track of commits
-                                        if(commit) {
-                                            self.setState({
-                                                devCommit: commit.substring(0, 6)
-                                            });
-                                        }
-                                    }
-                                    if(qaStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundQA) {
-                                        self.setState({
-                                            foundQA: true,
-                                            qaBranch: branchName,
-                                            qaRun: run,
-                                            qaStartTime: startTime,
-                                            qaUrl: pipelineUrl,
-                                        });
-
-                                        if(commit) {
-                                            self.setState({
-                                                qaCommit: commit.substring(0, 6)
-                                            });
-                                        }
-                                    }
-                                    if(prodStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundProd) {
-                                        self.setState({
-                                            foundProd: true,
-                                            prodBranch: branchName,
-                                            prodRun: run,
-                                            prodStartTime: startTime,
-                                            prodUrl: pipelineUrl,
-                                        });
-
-                                        if(commit) {
-                                            self.setState({
-                                                prodCommit: commit.substring(0, 6)
-                                            });
-                                        }
-                                    }
-                                }
-                                x++;
-                             }
-                             self.setState({
-                                 isLoading: false
-                             });
                         }).catch(e => {
                             console.log(e);
                             self.setState({
@@ -178,12 +170,10 @@ export class EnvironmentInfoPage extends React.Component {
                             isLoading: false
                         });
                     });
-                }).catch(e => {
-                    console.log(e);
-                    self.setState({
-                        isLoading: false
-                    });
-                });
+            }).catch(e => {
+                console.log(e);
+            });
+
     }
 
     render() {
@@ -198,14 +188,19 @@ export class EnvironmentInfoPage extends React.Component {
             <Link to={branchesUrl}>Branches</Link>,
             <Link to={prUrl}>Pull Requests</Link>,
         ];
-        const baseUrl = this.generatePipelineUrl(organization, pipeline);
+
+        let pipelineRef = {
+            organization: organization,
+            pipeline: this.state.pipelineObject,
+        }
+        const baseUrl = UrlUtils.getRestUrl(pipelineRef);
 
         const classicConfigLink = <a href={UrlUtils.buildClassicConfigUrl(this.state.pipelineObject)} target="_blank"><Icon size={24} icon="settings" style={{ fill: '#fff' }} /></a>;
 
 
         const pageHeader =
             <ContentPageHeader pageTabBase={baseUrl} pageTabLinks={pageTabLinks}>
-                <WeatherIcon score={this.state.pipeline.weatherScore} />
+                <WeatherIcon score={this.state.weatherScore} />
                 <h1>
                     <Link to={activityUrl} query={location.query}>
                         <ExpandablePath path={pipeline} hideFirst className="dark-theme" iconSize={20} />
