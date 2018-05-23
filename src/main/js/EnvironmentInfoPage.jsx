@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { observer } from 'mobx-react';
 import Extensions from '@jenkins-cd/js-extensions';
 import { TabLink, WeatherIcon, ExpandablePath } from '@jenkins-cd/design-language';
-import { Fetch, AppConfig, UrlUtils, UrlConfig, capable, ContentPageHeader, Security, pipelineService, Paths} from '@jenkins-cd/blueocean-core-js';
+import { Fetch, AppConfig, utils/UrlUtils, UrlConfig, capable, ContentPageHeader, Security, pipelineService, Paths} from '@jenkins-cd/blueocean-core-js';
 import environmentInfoService from './EnvironmentInfoService';
 
 const classicConfigLink = pipeline => {
