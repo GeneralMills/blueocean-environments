@@ -92,14 +92,14 @@ export class EnvironmentInfoPage extends React.Component {
                                         });
                                         return;
                                     }
-                                    let branchName = response[x].pipeline;
+                                    let branchName = decodeURIComponent(response[x].pipeline);
                                     let run = response[x].id;
                                     let commit = response[x].commitId;
                                     let startTime = moment(new Date(response[x].startTime), "MM/DD/YYYY HH:mma");
                                     let now = moment(new Date(), "MM/DD/YYYY HH:mma");
                                     let difference = moment.duration(now.diff(startTime)).humanize();
                                     let stages = pipelines[j];
-                                    let pipelineUrl = this.generatePipelineUrl(organization, pipeline.fullName, branchName, run);
+                                    let pipelineUrl = this.generatePipelineUrl(organization, pipeline.fullName, encodeURIComponent(branchName), run);
                                     for(var k = 0; k < stages.length; k++) {
                                         let stage = stages[k]
                                         if(devStages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED" && !self.state.foundDev) {
