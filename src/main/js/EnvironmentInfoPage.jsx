@@ -236,7 +236,7 @@ export class EnvironmentInfoPage extends React.Component {
                                 <div>Development</div>
                             </div>
                             {this.state.foundDev ?  <div className="body">
-                                <div className="branchName">{this.state.devBranch} {this.state.devRun}</div>
+                                <div className="branchInfo"><div className="branchName">{this.state.devBranch}</div> <div className="branchRun"># {this.state.devRun}</div></div>
                                 <div className="timeStamp">{this.state.devStartTime} ({this.state.devDifference} ago)</div>
                                 {this.state.devCommit ? <div className="commitHash">commit {this.state.devCommit}</div> : null}
                                 {this.state.devUrl ? <div className="pipelineText">View Pipeline</div> : null}
@@ -249,7 +249,7 @@ export class EnvironmentInfoPage extends React.Component {
                                 <div>QA</div>
                             </div>
                             {this.state.foundQA ?  <div className="body">
-                                <div className="branchName">{this.state.qaBranch} {this.state.qaRun}</div>
+                                <div className="branchInfo"><div className="branchName">{this.state.qaBranch}</div> <div className="branchRun"># {this.state.qaRun}</div></div>
                                 <div className="timeStamp">{this.state.qaStartTime} ({this.state.qaDifference} ago)</div>
                                 {this.state.qaCommit ? <div className="commitHash">commit {this.state.qaCommit}</div> : null}
                                 {this.state.qaUrl ? <div className="pipelineText">View Pipeline</div> : null}
@@ -262,7 +262,7 @@ export class EnvironmentInfoPage extends React.Component {
                                 <div>Production</div>
                             </div>
                             {this.state.foundProd ?  <div className="body">
-                                <div className="branchName">{this.state.prodBranch} {this.state.prodRun}</div>
+                                <div className="branchInfo"><div className="branchName">{this.state.prodBranch}</div> <div className="branchRun"># {this.state.prodRun}</div></div>
                                 <div className="timeStamp">{this.state.prodStartTime} ({this.state.prodDifference} ago)</div>
                                 {this.state.prodCommit ? <div className="commitHash">commit {this.state.prodCommit}</div> : null}
                                 {this.state.prodUrl ? <div className="pipelineText">View Pipeline</div> : null}
