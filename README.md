@@ -18,6 +18,6 @@ and Prod can be configured on the global configuration page.  It is a comma deli
 5. Run `mvn hpi:run` in root of git repository directory
 6. Install Blue Ocean 1.5 by going to the following link and downloading the 1.5 .hpi. Then install it by going to Manage Jenkins > Manage Plugins > Advanced > Upload Plugin.
     * https://updates.jenkins.io/download/plugins/blueocean/
-7. Restart Jenkins by ending the `mvn hpi:run` command, and re-running it.
+7. Restart Jenkins by entering the `mvn hpi:run` command, and re-running it.
 8. Setup environments in local Jenkins instance under Manage Jenkins > Configure System.
     ![Alt text](/docs/environmentsetup.png)
