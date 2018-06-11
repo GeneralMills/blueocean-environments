@@ -14,9 +14,7 @@ public class GlobalConfig extends GlobalConfiguration {
         return GlobalConfiguration.all().get(GlobalConfig.class);
     }
 
-    private String developmentDeployStageNames;
-    private String qaDeployStageNames;
-    private String prodDeployStageNames;
+    private String deployStageNames;
 
     public GlobalConfig() {
         load();
@@ -28,50 +26,18 @@ public class GlobalConfig extends GlobalConfiguration {
         return true;
     }
 
-    public String getDevelopmentDeployStageNames() {
-        return developmentDeployStageNames;
+    public String getDeployStageNames() {
+        return deployStageNames;
     }
 
-    public void setDevelopmentDeployStageNames(String developmentDeployStageNames) {
-        this.developmentDeployStageNames = developmentDeployStageNames;
+    public void setDeployStageNames(String deployStageNames) {
+        this.deployStageNames = deployStageNames;
         save();
     }
 
-    public String getQaDeployStageNames() {
-        return qaDeployStageNames;
-    }
-
-    public void setQaDeployStageNames(String qaDeployStageNames) {
-        this.qaDeployStageNames = qaDeployStageNames;
-        save();
-    }
-
-    public String getProdDeployStageNames() {
-        return prodDeployStageNames;
-    }
-
-    public void setProdDeployStageNames(String prodDeployStageNames) {
-        this.prodDeployStageNames = prodDeployStageNames;
-        save();
-    }
-
-    public FormValidation doCheckDevelopmentDeployStageNames(@QueryParameter String value) {
+    public FormValidation doCheckdeployStageNames(@QueryParameter String value) {
         if (value == null || value.trim().isEmpty())
-            return FormValidation.warning("Please set a Development Deploy stage name");
-
-        return FormValidation.ok();
-    }
-
-    public FormValidation doCheckQaDeployStageNames(@QueryParameter String value) {
-        if (value == null || value.trim().isEmpty())
-            return FormValidation.warning("Please set a QA Deploy stage name");
-
-        return FormValidation.ok();
-    }
-
-    public FormValidation doCheckProdDeployStageNames(@QueryParameter String value) {
-        if (value == null || value.trim().isEmpty())
-            return FormValidation.warning("Please set a Production Deploy stage name");
+            return FormValidation.warning("Please set a Deploy stage name");
 
         return FormValidation.ok();
     }
