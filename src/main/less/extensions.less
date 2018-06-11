@@ -1,10 +1,11 @@
 .container {
   display: flex;
-}
-.container > div {
-  flex: 1;
-  margin: 25px;
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.15)
+
+  a {
+    flex: 1;
+    margin: 25px;
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.15);
+  }
 }
 .body{
     margin: 15px;
@@ -16,13 +17,13 @@ a:hover {
     color: #4a90e2 ~'!important';
     text-decoration: none ~'!important';
 }
-
-.branchInfo > span {
-    margin-right: -6px;
-    color: #817ea0;
-}
-.branchInfo{
+.branchInfo {
     font-size: xx-large;
+
+    span {
+        margin-right: -6px;
+        color: #817ea0;
+    }
 }
 .branchName {
     display: inline;

@@ -14,22 +14,18 @@ require("babel-polyfill");
 
 @observer
 export class EnvironmentInfoPage extends React.Component {
-    stagePipelineEnvironments = [];
-
     constructor(props) {
         super(props);
         this.state = {
-            pipeline: ""
+            isLoading: true,
+            pipeline: "",
+            stagePipelineEnvironments: []
         };
     }
 
     generatePipelineUrl(organization, pipeline, branch, run) {
         let baseUrl = `${UrlConfig.getBlueOceanAppURL()}/organizations/${organization}/`;
         let nestedPipeline = pipeline.split("/");
-
-        for (let nestedPipelineUrlPart of nestedPipeline) {
-            baseUrl = `${baseUrl}${nestedPipelineUrlPart}%2F`;
-        }
 
         baseUrl = `${baseUrl}${nestedPipeline[nestedPipeline.length - 1]}`;
         baseUrl = `${baseUrl}/detail/${branch}/${run}/pipeline/`;
@@ -38,12 +34,11 @@ export class EnvironmentInfoPage extends React.Component {
     }
 
     async componentWillMount() {
-        var self = this;
         let organization = this.props.params.organization;
-        let stages = environmentInfoService.stages.split(",");
+        let stageEnvironments = environmentInfoService.stages.split(",");
         let pipeline = this.props.params.pipeline;
         let promises = [];
-        self.setState({
+        this.setState({
             activityUrl: `/jenkins/blue/organizations/${organization}/${pipeline}/activity/`,
         });
         const RestPaths = Paths.rest;
@@ -76,7 +71,7 @@ export class EnvironmentInfoPage extends React.Component {
         }
 
         if (runResponse.length === 0) {
-            self.setState({
+            this.setState({
                 neverBeenRun: true
             });
         }
@@ -84,8 +79,8 @@ export class EnvironmentInfoPage extends React.Component {
         // Get the stages of each run
         let pipelines = await Promise.all(promises);
         let x = 0;
+        
         for (let stages of pipelines) {
-
             let branchName = decodeURIComponent(runResponse[x].pipeline);
             let run = runResponse[x].id;
             let commit = runResponse[x].commitId;
@@ -96,26 +91,32 @@ export class EnvironmentInfoPage extends React.Component {
             let pipelineUrl = this.generatePipelineUrl(organization, pipelineResponse.fullName, encodeURIComponent(branchName), run);
 
             for (let stage of stages) {
-                if (stages.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED") {
+                if (stageEnvironments.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED") {
                     let pipelineEnvironmentStage = new PipelineEnvironment(stage.displayName, branchName, run, startTime.format("MM/DD/YYYY HH:mma"), difference, pipelineUrl, commit.substring(0, 6));
+                    
+                    let filteredEnvs = this.state.stagePipelineEnvironments.filter((stagePipelineEnvironment) => 
+                        stagePipelineEnvironment.stageName == stage.displayName
+                    );
 
-                    if (this.stagePipelineEnvironments.contains(stage.displayName)) {
-                        this.stagePipelineEnvironments[stage.displayName] = pipelineEnvironmentStage;
-                    }
-                    else {
-                        this.stagePipelineEnvironments.push(stage.displayName, pipelineEnvironmentStage);
+                    if (filteredEnvs.length == 0) {
+                        let temp = this.state.stagePipelineEnvironments;
+                        temp.push(pipelineEnvironmentStage);
+
+                        this.setState({
+                            stagePipelineEnvironments: temp
+                        });
                     }
                 }
             }
             x++;
         }
-        self.setState({
+        this.setState({
             isLoading: false
         });
     }
 
     pipelineEnvironment(pipelineEnvironment) {
-        return <a href={`pipelineEnvironment.url}`} target="_blank">
+        return <a href={pipelineEnvironment.url} target="_blank">
             <div className="header">
                 <div>{pipelineEnvironment.stageName}</div>
             </div>
@@ -129,7 +130,7 @@ export class EnvironmentInfoPage extends React.Component {
                 {pipelineEnvironment.commit && <div className="commitHash">commit {pipelineEnvironment.commit}</div>}
                 {pipelineEnvironment.url && <div className="pipelineText">View Pipeline</div>}
             </div>
-        </a>;
+        </a>
     }
 
     render() {
@@ -148,22 +149,22 @@ export class EnvironmentInfoPage extends React.Component {
         let pipelineRef = {
             organization: organization,
             pipeline: this.state.pipelineObject,
-        }
+        };
+
         const baseUrl = UrlUtils.getRestUrl(pipelineRef);
 
         const classicConfigLink = <a href={UrlUtils.buildClassicConfigUrl(this.state.pipelineObject)} target="_blank"><Icon size={24} icon="settings" style={{ fill: '#fff' }} /></a>;
 
-        const pageHeader =
-            <ContentPageHeader pageTabBase={baseUrl} pageTabLinks={pageTabLinks}>
-                <WeatherIcon score={this.state.weatherScore} />
-                <h1>
-                    <Link to={activityUrl} query={location.query}>
-                        <ExpandablePath path={pipeline} hideFirst className="dark-theme" iconSize={20} />
-                    </Link>
-                </h1>
-               <Extensions.Renderer extensionPoint="jenkins.pipeline.detail.header.action" store={this.context.store} pipeline={pipeline} />
-               {classicConfigLink}
-           </ContentPageHeader>;
+        const pageHeader = <ContentPageHeader pageTabBase={baseUrl} pageTabLinks={pageTabLinks}>
+            <WeatherIcon score={this.state.weatherScore} />
+            <h1>
+                <Link to={activityUrl} query={location.query}>
+                    <ExpandablePath path={pipeline} hideFirst className="dark-theme" iconSize={20} />
+                </Link>
+            </h1>
+            <Extensions.Renderer extensionPoint="jenkins.pipeline.detail.header.action" store={this.context.store} pipeline={pipeline} />
+            {classicConfigLink}
+        </ContentPageHeader>;
 
         return (
             <div>
@@ -180,7 +181,7 @@ export class EnvironmentInfoPage extends React.Component {
                     </main>
                 </div>}
                 <div className="container">
-                    {this.stagePipelineEnvironments.map(this.pipelineEnvironment)};
+                    {this.state.stagePipelineEnvironments.map(this.pipelineEnvironment)}
                 </div>
             </div>
         );
