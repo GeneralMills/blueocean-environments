@@ -1,40 +1,25 @@
 import { observable, action } from 'mobx';
 import { Fetch, UrlConfig, AppConfig } from '@jenkins-cd/blueocean-core-js';
+require("babel-core/register");
+require("babel-polyfill");
 
 export class EnvironmentInfoService{
     @observable
-    devStages;
-    @observable
-    qaStages;
-    @observable
-    prodStages;
+    stages;
 
     constructor() {
         this.fetchEnvironmentInfo();
     }
 
     @action
-    setDevStages(devStages) {
-        this.devStages = devStages;
+    setStages(stages) {
+        this.stages = stages;
     }
 
-    @action
-    setQaStages(qaStages) {
-        this.qaStages = qaStages;
-    }
+    async fetchEnvironmentInfo() {
+        let response = await Fetch.fetchJSON(`${UrlConfig.getRestBaseURL()}/organizations/${AppConfig.getOrganizationName()}/environments/`);
 
-    @action
-    setProdStages(prodStages) {
-        this.prodStages = prodStages;
-    }
-
-    fetchEnvironmentInfo() {
-        Fetch.fetchJSON(`${UrlConfig.getRestBaseURL()}/organizations/${AppConfig.getOrganizationName()}/environments/`)
-        .then(response => {
-            this.setDevStages(response.environments[0]);
-            this.setQaStages(response.environments[1]);
-            this.setProdStages(response.environments[2]);
-        });
+        this.setStages(response.environments[0]);
     }
 }
 

@@ -1,10 +1,11 @@
 .container {
   display: flex;
-}
-.container > div {
-  flex: 1;
-  margin: 25px;
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.15)
+
+  a {
+    flex: 1;
+    margin: 25px;
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.15);
+  }
 }
 .body{
     margin: 15px;
@@ -13,17 +14,32 @@ a {
     color: inherit;
 }
 a:hover {
-    color: black;
+    color: #4a90e2 ~'!important';
     text-decoration: none ~'!important';
 }
-.branchName {
+.branchInfo {
     font-size: xx-large;
+
+    span {
+        margin-right: -6px;
+        color: #817ea0;
+    }
+}
+.branchName {
+    display: inline;
+}
+.branchRun {
+    float: right;
 }
 .header {
     padding: 20px 15px 20px;
     font-size: x-large;
     background-color: #2979ff;
     color:white;
+}
+.commitHash {
+    font-family: consolas;
+    font-weight: bolder;
 }
 .timeStamp, .commitHash {
     color: #817ea0;
