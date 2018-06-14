@@ -14,8 +14,8 @@ require("babel-polyfill");
 
 @observer
 export class EnvironmentInfoPage extends React.Component {
-
     stageEnvironments = [];
+    matchedStageEnvironments = [];
 
     constructor(props) {
         super(props);
@@ -24,16 +24,6 @@ export class EnvironmentInfoPage extends React.Component {
             pipeline: "",
             stagePipelineEnvironments: []
         };
-    }
-
-    generatePipelineUrl(organization, pipeline, branch, run) {
-        let baseUrl = `${UrlConfig.getBlueOceanAppURL()}/organizations/${organization}/`;
-        let nestedPipeline = pipeline.split("/");
-
-        baseUrl = `${baseUrl}${nestedPipeline[nestedPipeline.length - 1]}`;
-        baseUrl = `${baseUrl}/detail/${branch}/${run}/pipeline/`;
-
-        return baseUrl;
     }
 
     async componentWillMount() {
@@ -61,25 +51,13 @@ export class EnvironmentInfoPage extends React.Component {
 
         // Get the pipeline Runs
         let branchResponse = await Fetch.fetchJSON(`${baseUrl}/branches/`);
-        
-        for (let branchJob of branchResponse) {
-            let runResponse;
-            let nodesResponse;
+        let branchPromises = [];
 
-            for (let i = branchJob.latestRun.id; i > 0; i--) {
-                // rest api works differently for multibranch pipelines
-                if (isMultibranchPipeline) {
-                    runResponse = await Fetch.fetchJSON(`${baseUrl}/branches/${branchJob.name}/runs/${i}`);
-                    nodesResponse = await Fetch.fetchJSON(`${baseUrl}/branches/${branchJob.name}/runs/${i}/nodes/`);
-                }
-                else {
-                    runResponse = await Fetch.fetchJSON(`${baseUrl}/runs/${i}/`);
-                    nodesResponse = await Fetch.fetchJSON(`${baseUrl}/runs/${i}/nodes/`);
-                }
-    
-                this.evaluateRunForEnvironments(runResponse, nodesResponse);
-            }
+        for (let branchJob of branchResponse) {
+            branchPromises.push(this.evaluateBranch(baseUrl, branchJob, isMultibranchPipeline));
         }
+
+        await Promise.all(branchPromises);
 
         if (branchResponse.length === 0) {
             this.setState({
@@ -92,19 +70,78 @@ export class EnvironmentInfoPage extends React.Component {
         });
     }
 
-    evaluateRunForEnvironments(run, stages) {
-        let branchName = decodeURIComponent(run.name);
+    generatePipelineUrl(organization, pipeline, branch, run) {
+        let baseUrl = `${UrlConfig.getBlueOceanAppURL()}/organizations/${organization}/`;
+        let nestedPipeline = pipeline.split("/");
+
+        baseUrl = `${baseUrl}${nestedPipeline[nestedPipeline.length - 1]}`;
+        baseUrl = `${baseUrl}/detail/${branch}/${run}/pipeline/`;
+
+        return baseUrl;
+    }
+
+    async evaluateBranch(baseUrl, branchJob, isMultibranchPipeline) {
+        let runResponse;
+        let nodesResponse;
+        let branchExhausted = false;
+
+        for (let i = branchJob.latestRun.id; i > 0 && !branchExhausted; i--) {
+            // rest api works differently for multibranch pipelines
+            if (isMultibranchPipeline) {
+                runResponse = await Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}`);
+                nodesResponse = await Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}/nodes/`);
+            }
+            else {
+                runResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/`);
+                nodesResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/nodes/`);
+            }
+
+            this.evaluateRunForEnvironments(runResponse, nodesResponse);
+
+            // Check if we have found a record for all environments
+            if (this.matchedStageEnvironments.length == this.state.stagePipelineEnvironments.length) {
+                let foundPotentialEnvironment = false;
+
+                for (let stagePipelineEnvironment of this.state.stagePipelineEnvironments) {
+                    if (stagePipelineEnvironment.startDateTime < runResponse.startTime) {
+                        foundPotentialEnvironment = true;
+                    }
+                }
+
+                branchExhausted = !foundPotentialEnvironment;
+            }
+        }
+    }
+
+    evaluateRunForEnvironments(run, nodes) {
+        let branchName = decodeURIComponent(run.pipeline);
         
         let commit = run.commitId;
-        let startTime = moment(new Date(run.startTime), "MM/DD/YYYY HH:mma");
-        let now = moment(new Date(), "MM/DD/YYYY HH:mma");
-        let difference = moment.duration(now.diff(startTime)).humanize();
-        
-        let pipelineUrl = this.generatePipelineUrl(this.props.params.organization, run.pipeline, encodeURIComponent(branchName), run.id);
 
-        for (let stage of stages) {
-            if (this.stageEnvironments.includes(stage.displayName.toLowerCase()) && stage.result === "SUCCESS" && stage.state === "FINISHED") {
-                let pipelineEnvironmentStage = new PipelineEnvironment(stage.displayName, branchName, run, startTime.format("MM/DD/YYYY HH:mma"), difference, pipelineUrl, commit.substring(0, 6));
+        let pipelineUrl = this.generatePipelineUrl(this.props.params.organization, this.props.params.pipeline, encodeURIComponent(branchName), run.id);
+
+        for (let stage of nodes) {
+            let stageTime = new Date(stage.startTime);
+            stageTime.setMilliseconds(stageTime.getMilliseconds() + stage.durationInMillis);
+            let stageTimeFormatted = moment(stageTime, "MM/DD/YYYY HH:mma");
+            let now = moment(new Date(), "MM/DD/YYYY HH:mma");
+            let difference = moment.duration(now.diff(stageTimeFormatted)).humanize();
+
+            let isDeploymentStage = this.stageEnvironments.includes(stage.displayName.toLowerCase());
+            
+            if (!this.matchedStageEnvironments.includes(stage.displayName.toLowerCase()) && isDeploymentStage) {
+                this.matchedStageEnvironments.push(stage.displayName.toLowerCase());
+            }
+
+            if (isDeploymentStage && stage.result === "SUCCESS" && stage.state === "FINISHED") {
+                let pipelineEnvironmentStage = new PipelineEnvironment(stage.displayName, 
+                                                                       branchName, 
+                                                                       run.id, 
+                                                                       stageTimeFormatted.format("MM/DD/YYYY HH:mma"), 
+                                                                       stageTime,
+                                                                       difference, 
+                                                                       pipelineUrl, 
+                                                                       commit.substring(0, 6));
                 
                 let filteredEnvs = this.state.stagePipelineEnvironments.filter((stagePipelineEnvironment) => 
                     stagePipelineEnvironment.stageName == stage.displayName
@@ -112,6 +149,16 @@ export class EnvironmentInfoPage extends React.Component {
 
                 if (filteredEnvs.length == 0) {
                     let temp = this.state.stagePipelineEnvironments;
+                    temp.push(pipelineEnvironmentStage);
+
+                    this.setState({
+                        stagePipelineEnvironments: temp
+                    });
+                }
+                else if (filteredEnvs[0].startDateTime < pipelineEnvironmentStage.startDateTime) {
+                    let temp = this.state.stagePipelineEnvironments;
+                    temp.splice(temp.indexOf(filteredEnvs[0]), 1); // remove old pipeline environment
+
                     temp.push(pipelineEnvironmentStage);
 
                     this.setState({
@@ -131,10 +178,10 @@ export class EnvironmentInfoPage extends React.Component {
                 <div className="branchInfo">
                     <span className="mega-octicon octicon-git-branch"></span>
                     <div className="branchName">{pipelineEnvironment.branch}</div>
-                    <div className="branchRun"># {pipelineEnvironment.run}</div>
+                    <div className="branchRun">#{pipelineEnvironment.run}</div>
                 </div>
-                <div className="timeStamp"><span className="mega-octicon octicon-clock"></span>{pipelineEnvironment.startTime} ({pipelineEnvironment.difference} ago)</div>
-                {pipelineEnvironment.commit && <div className="commitHash"><span className="mega-octicon octicon-code"></span>commit {pipelineEnvironment.commit}</div>}
+                <div className="timeStamp"><span className="mega-octicon octicon-clock deploy-icon"></span>{pipelineEnvironment.startTime} ({pipelineEnvironment.momentDifference} ago)</div>
+                {pipelineEnvironment.commit && <div className="commitHash"><span className="mega-octicon octicon-code deploy-icon"></span>commit {pipelineEnvironment.commit}</div>}
                 {pipelineEnvironment.url && <div className="pipelineText">View Pipeline</div>}
             </div>
         </a>
