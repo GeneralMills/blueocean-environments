@@ -111,7 +111,7 @@ export class EnvironmentInfoPage extends React.Component {
                     branchExhausted = !foundPotentialEnvironment;
                 }
             }
-            catch {
+            catch (exception) {
                 branchExhausted = true;
             }
         }
