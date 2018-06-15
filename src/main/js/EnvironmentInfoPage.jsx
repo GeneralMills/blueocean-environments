@@ -72,13 +72,11 @@ export class EnvironmentInfoPage extends React.Component {
     }
 
     generatePipelineUrl(organization, pipeline, branch, run) {
-        let baseUrl = `${UrlConfig.getBlueOceanAppURL()}/organizations/${organization}/`;
-        let nestedPipeline = pipeline.split("/");
+        let baseUrl = `${UrlConfig.getBlueOceanAppURL()}/organizations/${organization}`;
+        
+        const encodedPipeline = encodeURIComponent(pipeline);
 
-        baseUrl = `${baseUrl}${nestedPipeline[nestedPipeline.length - 1]}`;
-        baseUrl = `${baseUrl}/detail/${branch}/${run}/pipeline/`;
-
-        return baseUrl;
+        return `${baseUrl}/${encodedPipeline}/detail/${branch}/${run}/pipeline/`;
     }
 
     async evaluateBranch(baseUrl, branchJob, isMultibranchPipeline) {
@@ -232,7 +230,7 @@ export class EnvironmentInfoPage extends React.Component {
                     </main>
                 </div>}
                 <div className="container">
-                    {this.state.stagePipelineEnvironments.map(this.pipelineEnvironment)}
+                    {!this.state.isLoading && this.state.stagePipelineEnvironments.map(this.pipelineEnvironment)}
                 </div>
             </div>
         );
