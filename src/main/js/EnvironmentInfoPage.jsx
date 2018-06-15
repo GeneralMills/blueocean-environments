@@ -115,11 +115,9 @@ export class EnvironmentInfoPage extends React.Component {
     }
 
     evaluateRunForEnvironments(run, nodes) {
-        let branchName = decodeURIComponent(run.pipeline);
-        
         let commit = run.commitId;
 
-        let pipelineUrl = this.generatePipelineUrl(this.props.params.organization, this.props.params.pipeline, encodeURIComponent(branchName), run.id);
+        let pipelineUrl = this.generatePipelineUrl(this.props.params.organization, this.props.params.pipeline, run.pipeline, run.id);
 
         for (let stage of nodes) {
             let stageTime = new Date(stage.startTime);
@@ -136,7 +134,7 @@ export class EnvironmentInfoPage extends React.Component {
 
             if (isDeploymentStage && stage.result === "SUCCESS" && stage.state === "FINISHED") {
                 let pipelineEnvironmentStage = new PipelineEnvironment(stage.displayName, 
-                                                                       branchName, 
+                                                                       decodeURIComponent(run.pipeline), 
                                                                        run.id, 
                                                                        stageTimeFormatted.format("MM/DD/YYYY HH:mma"), 
                                                                        stageTime,
