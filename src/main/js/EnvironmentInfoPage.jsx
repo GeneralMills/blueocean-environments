@@ -11,6 +11,7 @@ import { PipelineEnvironment } from './PipelineEnvironment';
 import environmentInfoService from './EnvironmentInfoService';
 require("babel-core/register");
 require("babel-polyfill");
+require("browserify-sign");
 
 @observer
 export class EnvironmentInfoPage extends React.Component {
