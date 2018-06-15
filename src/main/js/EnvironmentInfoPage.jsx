@@ -85,29 +85,34 @@ export class EnvironmentInfoPage extends React.Component {
         let branchExhausted = false;
 
         for (let i = branchJob.latestRun.id; i > 0 && !branchExhausted; i--) {
-            // rest api works differently for multibranch pipelines
-            if (isMultibranchPipeline) {
-                runResponse = await Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}`);
-                nodesResponse = await Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}/nodes/`);
-            }
-            else {
-                runResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/`);
-                nodesResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/nodes/`);
-            }
-
-            this.evaluateRunForEnvironments(runResponse, nodesResponse);
-
-            // Check if we have found a record for all environments
-            if (this.matchedStageEnvironments.length === this.state.stagePipelineEnvironments.length) {
-                let foundPotentialEnvironment = false;
-
-                for (let stagePipelineEnvironment of this.state.stagePipelineEnvironments) {
-                    if (stagePipelineEnvironment.startDateTime < runResponse.startTime) {
-                        foundPotentialEnvironment = true;
-                    }
+            try {
+                // rest api works differently for multibranch pipelines
+                if (isMultibranchPipeline) {
+                    runResponse = await Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}`);
+                    nodesResponse = await Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}/nodes/`);
+                }
+                else {
+                    runResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/`);
+                    nodesResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/nodes/`);
                 }
 
-                branchExhausted = !foundPotentialEnvironment;
+                this.evaluateRunForEnvironments(runResponse, nodesResponse);
+
+                // Check if we have found a record for all environments
+                if (this.matchedStageEnvironments.length === this.state.stagePipelineEnvironments.length) {
+                    let foundPotentialEnvironment = false;
+
+                    for (let stagePipelineEnvironment of this.state.stagePipelineEnvironments) {
+                        if (stagePipelineEnvironment.startDateTime < runResponse.startTime) {
+                            foundPotentialEnvironment = true;
+                        }
+                    }
+
+                    branchExhausted = !foundPotentialEnvironment;
+                }
+            }
+            catch {
+                branchExhausted = true;
             }
         }
     }
@@ -223,7 +228,7 @@ export class EnvironmentInfoPage extends React.Component {
                     <main className="PlaceholderContent NoRuns u-fill u-fade-bottom mainPopupBox" style={{top:'72px;'}}>
                         <article>
                             <div className="PlaceholderDialog popupBox">
-                                <h1 className="title titlePopupBox">This job has not been run</h1>
+                                <h1 className="title titlePopupBox">No deployments found to any stage named: {this.stageEnvironments}</h1>
                                 <button className="icon-button dark" onClick={() => location.href = this.state.activityUrl}>Run</button>
                             </div>
                         </article>
