@@ -60,7 +60,7 @@ export class EnvironmentInfoPage extends React.Component {
 
         await Promise.all(branchPromises);
 
-        if (branchResponse.length === 0) {
+        if (branchResponse.length === 0 || this.matchedStageEnvironments.length === 0) {
             this.setState({
                 neverBeenRun: true
             });
@@ -100,7 +100,7 @@ export class EnvironmentInfoPage extends React.Component {
             this.evaluateRunForEnvironments(runResponse, nodesResponse);
 
             // Check if we have found a record for all environments
-            if (this.matchedStageEnvironments.length == this.state.stagePipelineEnvironments.length) {
+            if (this.matchedStageEnvironments.length === this.state.stagePipelineEnvironments.length) {
                 let foundPotentialEnvironment = false;
 
                 for (let stagePipelineEnvironment of this.state.stagePipelineEnvironments) {
@@ -145,10 +145,10 @@ export class EnvironmentInfoPage extends React.Component {
                                                                        commit.substring(0, 6));
                 
                 let filteredEnvs = this.state.stagePipelineEnvironments.filter((stagePipelineEnvironment) => 
-                    stagePipelineEnvironment.stageName == stage.displayName
+                    stagePipelineEnvironment.stageName === stage.displayName
                 );
 
-                if (filteredEnvs.length == 0) {
+                if (filteredEnvs.length === 0) {
                     let temp = this.state.stagePipelineEnvironments;
                     temp.push(pipelineEnvironmentStage);
 
@@ -189,11 +189,9 @@ export class EnvironmentInfoPage extends React.Component {
     }
 
     render() {
-        const pipeline = this.props.params.pipeline;
-        const organization = this.props.params.organization;
-        const activityUrl = UrlUtils.buildPipelineUrl(this.props.params.organization, pipeline, 'activity');
-        const branchesUrl = UrlUtils.buildPipelineUrl(this.props.params.organization, pipeline, 'branches');
-        const prUrl = UrlUtils.buildPipelineUrl(this.props.params.organization, pipeline, 'pr');
+        const activityUrl = UrlUtils.buildPipelineUrl(this.props.params.organization, this.props.params.pipeline, 'activity');
+        const branchesUrl = UrlUtils.buildPipelineUrl(this.props.params.organization, this.props.params.pipeline, 'branches');
+        const prUrl = UrlUtils.buildPipelineUrl(this.props.params.organization, this.props.params.pipeline, 'pr');
 
         const pageTabLinks = [
             <Link to={activityUrl}>Activity</Link>,
@@ -214,10 +212,10 @@ export class EnvironmentInfoPage extends React.Component {
             <WeatherIcon score={this.state.weatherScore} />
             <h1>
                 <Link to={activityUrl} query={location.query}>
-                    <ExpandablePath path={pipeline} hideFirst className="dark-theme" iconSize={20} />
+                    <ExpandablePath path={this.props.params.pipeline} hideFirst className="dark-theme" iconSize={20} />
                 </Link>
             </h1>
-            <Extensions.Renderer extensionPoint="jenkins.pipeline.detail.header.action" store={this.context.store} pipeline={pipeline} />
+            <Extensions.Renderer extensionPoint="jenkins.pipeline.detail.header.action" store={this.context.store} pipeline={this.state.pipelineObject} />
             {classicConfigLink}
         </ContentPageHeader>;
 
