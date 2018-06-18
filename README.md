@@ -16,8 +16,14 @@ and Prod can be configured on the global configuration page.  It is a comma deli
 4. Run `mvn clean install` to bring in all dependencies.
     * You may run into an error like `Cannot find module '@jenkins-cd/react-material-icons'`, you could get around this by installing that module to another location and copying into your node_modules folder.
 5. Run `mvn hpi:run` in root of git repository directory
-6. Install Blue Ocean 1.5 by going to the following link and downloading the 1.5 .hpi. Then install it by going to Manage Jenkins > Manage Plugins > Advanced > Upload Plugin.
+6. Navigate to localhost:8080/jenkins and install Blue Ocean 1.5 by going to the following link and downloading the 1.5 .hpi. Then install it by going to Manage Jenkins > Manage Plugins > Advanced > Upload Plugin.
     * https://updates.jenkins.io/download/plugins/blueocean/
 7. Restart Jenkins by entering the `mvn hpi:run` command, and re-running it.
 8. Setup environments in local Jenkins instance under Manage Jenkins > Configure System.
     ![Alt text](/docs/environmentsetup.png)
+
+## Package & Install Jenkins Plugin
+To package up and install the plugin on Jenkins:
+1. Run `mvn package -DskipTests` to package up the hpi file.
+2. Take the hpi file from the `target` folder.
+2. Navigate to the Jenkins instance and go to Manage Jenkins > Manage Plugins > Advanced > Upload Plugin and upload the hpi file from the `target` folder.
