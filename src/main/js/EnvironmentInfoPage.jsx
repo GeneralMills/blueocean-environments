@@ -98,7 +98,7 @@ export class EnvironmentInfoPage extends React.Component {
 
                 this.evaluateRunForEnvironments(runResponse, nodesResponse);
 
-                // Check if we have found a record for all environments
+                // Check if we have found a record for all found environments
                 if (this.matchedStageEnvironments.length === this.state.stagePipelineEnvironments.length) {
                     let foundPotentialEnvironment = false;
 
@@ -108,6 +108,8 @@ export class EnvironmentInfoPage extends React.Component {
                         }
                     }
 
+                    // If we didn't find an environment with a stage date earlier than this pipeline's start time, 
+                    // then we won't find any more jobs.
                     branchExhausted = !foundPotentialEnvironment;
                 }
             }
@@ -117,6 +119,7 @@ export class EnvironmentInfoPage extends React.Component {
         }
     }
 
+    // Check whether the pipeline job deployed successfully to an environment and if it should be included in the report
     evaluateRunForEnvironments(run, nodes) {
         let commit = run.commitId;
 
@@ -145,26 +148,26 @@ export class EnvironmentInfoPage extends React.Component {
                                                                        pipelineUrl, 
                                                                        commit.substring(0, 6));
                 
-                let filteredEnvs = this.state.stagePipelineEnvironments.filter((stagePipelineEnvironment) => 
+                let commonEnvironment = this.state.stagePipelineEnvironments.filter((stagePipelineEnvironment) => 
                     stagePipelineEnvironment.stageName === stage.displayName
                 );
 
-                if (filteredEnvs.length === 0) {
-                    let temp = this.state.stagePipelineEnvironments;
-                    temp.push(pipelineEnvironmentStage);
+                if (commonEnvironment.length === 0) {
+                    let temporaryStagePipelineEnvironments = this.state.stagePipelineEnvironments;
+                    temporaryStagePipelineEnvironments.push(pipelineEnvironmentStage);
 
                     this.setState({
-                        stagePipelineEnvironments: temp
+                        stagePipelineEnvironments: temporaryStagePipelineEnvironments
                     });
                 }
-                else if (filteredEnvs[0].startDateTime < pipelineEnvironmentStage.startDateTime) {
-                    let temp = this.state.stagePipelineEnvironments;
-                    temp.splice(temp.indexOf(filteredEnvs[0]), 1); // remove old pipeline environment
+                else if (commonEnvironment[0].startDateTime < pipelineEnvironmentStage.startDateTime) {
+                    let temporaryStagePipelineEnvironments = this.state.stagePipelineEnvironments;
+                    temporaryStagePipelineEnvironments.splice(temporaryStagePipelineEnvironments.indexOf(commonEnvironment[0]), 1); // remove old pipeline environment
 
-                    temp.push(pipelineEnvironmentStage);
+                    temporaryStagePipelineEnvironments.push(pipelineEnvironmentStage);
 
                     this.setState({
-                        stagePipelineEnvironments: temp
+                        stagePipelineEnvironments: temporaryStagePipelineEnvironments
                     });
                 }
             }
