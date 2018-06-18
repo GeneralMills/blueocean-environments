@@ -96,6 +96,7 @@ export class EnvironmentInfoPage extends React.Component {
                     nodesResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/nodes/`);
                 }
 
+                // Check whether the pipeline job deployed successfully to an environment and if it should be included in the report
                 this.evaluateRunForEnvironments(runResponse, nodesResponse);
 
                 // Check if we have found a record for all found environments
@@ -119,7 +120,6 @@ export class EnvironmentInfoPage extends React.Component {
         }
     }
 
-    // Check whether the pipeline job deployed successfully to an environment and if it should be included in the report
     evaluateRunForEnvironments(run, nodes) {
         let commit = run.commitId;
 
