@@ -9,8 +9,6 @@ import * as UrlUtils from '@jenkins-cd/blueocean-core-js';
 import { Icon } from '@jenkins-cd/react-material-icons'
 import { PipelineEnvironment } from './PipelineEnvironment';
 import environmentInfoService from './EnvironmentInfoService';
-require("babel-core/register");
-require("browserify-sign");
 
 @observer
 export class EnvironmentInfoPage extends React.Component {
@@ -26,7 +24,7 @@ export class EnvironmentInfoPage extends React.Component {
         };
     }
 
-    async componentWillMount() {
+    componentWillMount() {
         this.stageEnvironments = environmentInfoService.stages.split(",");
         let pipeline = this.props.params.pipeline;
 
@@ -35,40 +33,55 @@ export class EnvironmentInfoPage extends React.Component {
         });
         const RestPaths = Paths.rest;
         const href = RestPaths.pipeline(this.props.params.organization, pipeline);
-        let pipelineResponse = await pipelineService.fetchPipeline(href, { useCache: true, disableCapabilites: false });
-        this.setState({
-            pipelineObject: pipelineResponse,
-            weatherScore: pipelineResponse.weatherScore
-        });
-
-        let pipelineRef = {
-            organization: this.props.params.organization,
-            pipeline: this.state.pipelineObject,
-        };
-        let baseUrl = UrlUtils.getRestUrl(pipelineRef);
-        let typeResponse = await Fetch.fetchJSON(`${baseUrl}`);
-        let isMultibranchPipeline = capable(typeResponse, 'io.jenkins.blueocean.rest.model.BlueMultiBranchPipeline');
-
-        // Get the pipeline Runs
-        let branchResponse = await Fetch.fetchJSON(`${baseUrl}/branches/`);
-        let branchPromises = [];
-
-        for (let branchJob of branchResponse) {
-            branchPromises.push(this.evaluateBranch(baseUrl, branchJob, isMultibranchPipeline));
-        }
-
-        await Promise.all(branchPromises);
-
-        this.sortStagePipelineEnvironments();
-
-        if (branchResponse.length === 0 || this.matchedStageEnvironments.length === 0) {
+        pipelineService.fetchPipeline(href, { useCache: true, disableCapabilites: false }).then((pipelineResponse) => {
             this.setState({
-                neverBeenRun: true
+                pipelineObject: pipelineResponse,
+                weatherScore: pipelineResponse.weatherScore
             });
-        }
+    
+            let pipelineRef = {
+                organization: this.props.params.organization,
+                pipeline: this.state.pipelineObject,
+            };
+            let baseUrl = UrlUtils.getRestUrl(pipelineRef);
+            Fetch.fetchJSON(`${baseUrl}`).then((typeResponse) => {
+                let isMultibranchPipeline = capable(typeResponse, 'io.jenkins.blueocean.rest.model.BlueMultiBranchPipeline');
+    
+                // Get the pipeline Runs
+                Fetch.fetchJSON(`${baseUrl}/branches/`).then((branchResponse) => {
+                    let branchPromises = [];
+        
+                    for (let branchJob of branchResponse) {
+                        branchPromises.push(this.evaluateBranch(baseUrl, branchJob, isMultibranchPipeline));
+                    }
+            
+                    Promise.all(branchPromises).then(() => {
+                        this.sortStagePipelineEnvironments();
 
-        this.setState({
-            isLoading: false
+                        if (branchResponse.length === 0 || this.matchedStageEnvironments.length === 0) {
+                            this.setState({
+                                neverBeenRun: true
+                            });
+                        }
+                
+                        this.setState({
+                            isLoading: false
+                        });
+                    }).catch(() => {
+                        this.sortStagePipelineEnvironments();
+
+                        if (branchResponse.length === 0 || this.matchedStageEnvironments.length === 0) {
+                            this.setState({
+                                neverBeenRun: true
+                            });
+                        }
+                
+                        this.setState({
+                            isLoading: false
+                        });
+                    });
+                });
+            });
         });
     }
 
@@ -100,45 +113,44 @@ export class EnvironmentInfoPage extends React.Component {
         return `${baseUrl}/${encodedPipeline}/detail/${branch}/${run}/pipeline/`;
     }
 
-    async evaluateBranch(baseUrl, branchJob, isMultibranchPipeline) {
+    evaluateBranch(baseUrl, branchJob, isMultibranchPipeline) {
         let runResponse;
         let nodesResponse;
-        let branchExhausted = false;
+        let runsFulfilled = 0;
 
-        for (let i = branchJob.latestRun.id; i > 0 && !branchExhausted; i--) {
-            try {
+        return new Promise((resolve, reject) => {
+            for (let i = branchJob.latestRun.id; i > 0; i--) {
+                let runInfoPromises = [];
+
                 // rest api works differently for multibranch pipelines
                 if (isMultibranchPipeline) {
-                    runResponse = await Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}`);
-                    nodesResponse = await Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}/nodes/`);
+                    runInfoPromises.push(Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}`));
+                    runInfoPromises.push(Fetch.fetchJSON(`${baseUrl}branches/${branchJob.name}/runs/${i}/nodes/`));
                 }
                 else {
-                    runResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/`);
-                    nodesResponse = await Fetch.fetchJSON(`${baseUrl}runs/${i}/nodes/`);
+                    runInfoPromises.push(Fetch.fetchJSON(`${baseUrl}runs/${i}/`));
+                    runInfoPromises.push(Fetch.fetchJSON(`${baseUrl}runs/${i}/nodes/`));
                 }
 
-                // Check whether the pipeline job deployed successfully to an environment and if it should be included in the report
-                this.evaluateRunForEnvironments(runResponse, nodesResponse);
-
-                // Check if we have found a record for all found environments
-                if (this.matchedStageEnvironments.length === this.state.stagePipelineEnvironments.length) {
-                    let foundPotentialEnvironment = false;
-
-                    for (let stagePipelineEnvironment of this.state.stagePipelineEnvironments) {
-                        if (stagePipelineEnvironment.startDateTime < runResponse.startTime) {
-                            foundPotentialEnvironment = true;
-                        }
+                Promise.all(runInfoPromises).then((values) => {
+                    let runResponse = values[0];
+                    let nodesResponse = values[1];
+    
+                    // Check whether the pipeline job deployed successfully to an environment and if it should be included in the report
+                    this.evaluateRunForEnvironments(runResponse, nodesResponse);
+                }).then(() => {
+                    // Check if we're done with this branch
+                    if (++runsFulfilled >= branchJob.latestRun.id - 1) {
+                        resolve();
                     }
-
-                    // If we didn't find an environment with a stage date earlier than this pipeline's start time, 
-                    // then we won't find any more jobs.
-                    branchExhausted = !foundPotentialEnvironment;
-                }
+                }).catch(() => {
+                    // Check if we're done with this branch
+                    if (++runsFulfilled >= branchJob.latestRun.id - 1) {
+                        resolve();
+                    }
+                });
             }
-            catch (exception) {
-                branchExhausted = true;
-            }
-        }
+        });
     }
 
     evaluateRunForEnvironments(run, nodes) {
@@ -170,7 +182,7 @@ export class EnvironmentInfoPage extends React.Component {
                                                                        commit.substring(0, 6));
                 
                 let commonEnvironment = this.state.stagePipelineEnvironments.filter((stagePipelineEnvironment) => 
-                    stagePipelineEnvironment.stageName.toLowerCase() === stage.displayName
+                    stagePipelineEnvironment.stageName.toLowerCase() === stage.displayName.toLowerCase()
                 );
 
                 if (commonEnvironment.length === 0) {
@@ -195,7 +207,7 @@ export class EnvironmentInfoPage extends React.Component {
         }
     }
 
-    pipelineEnvironment(pipelineEnvironment) {
+    renderPipelineEnvironment(pipelineEnvironment) {
         return <a href={pipelineEnvironment.url} target="_blank">
             <div className="header">
                 <div>{pipelineEnvironment.stageName}</div>
@@ -247,20 +259,23 @@ export class EnvironmentInfoPage extends React.Component {
         return (
             <div>
                 {pageHeader}
-                {this.state.isLoading && <div className="fullscreen blockscreen"></div>}
-                {this.state.neverBeenRun && <div className="fullscreen blockscreen">
-                    <main className="PlaceholderContent NoRuns u-fill u-fade-bottom mainPopupBox" style={{top:'72px;'}}>
-                        <article>
-                            <div className="PlaceholderDialog popupBox">
-                                <h1 className="title titlePopupBox">No deployments found to any stage named: {this.stageEnvironments}</h1>
-                                <button className="icon-button dark" onClick={() => location.href = this.state.activityUrl}>Run</button>
-                            </div>
-                        </article>
-                    </main>
-                </div>}
-                <div className="container">
-                    {!this.state.isLoading && this.state.stagePipelineEnvironments.map(this.pipelineEnvironment)}
-                </div>
+                <article>
+                    
+                    {this.state.isLoading && <div className="fullscreen blockscreen"></div>}
+                    {this.state.neverBeenRun && <div className="fullscreen blockscreen">
+                        <main className="PlaceholderContent NoRuns u-fill u-fade-bottom mainPopupBox" style={{top:'72px;'}}>
+                            <article>
+                                <div className="PlaceholderDialog popupBox">
+                                    <h1 className="title titlePopupBox">No deployments found to any stage named: {environmentInfoService.stages}</h1>
+                                    <button className="icon-button dark" onClick={() => location.href = this.state.activityUrl}>Run</button>
+                                </div>
+                            </article>
+                        </main>
+                    </div>}
+                    <div className="container">
+                        {!this.state.isLoading && this.state.stagePipelineEnvironments.map(this.renderPipelineEnvironment)}
+                    </div>
+                </article>
             </div>
         );
     }
