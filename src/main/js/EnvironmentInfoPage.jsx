@@ -10,7 +10,6 @@ import { Icon } from '@jenkins-cd/react-material-icons'
 import { PipelineEnvironment } from './PipelineEnvironment';
 import environmentInfoService from './EnvironmentInfoService';
 require("babel-core/register");
-require("babel-polyfill");
 require("browserify-sign");
 
 @observer
@@ -60,6 +59,8 @@ export class EnvironmentInfoPage extends React.Component {
 
         await Promise.all(branchPromises);
 
+        this.sortStagePipelineEnvironments();
+
         if (branchResponse.length === 0 || this.matchedStageEnvironments.length === 0) {
             this.setState({
                 neverBeenRun: true
@@ -69,6 +70,26 @@ export class EnvironmentInfoPage extends React.Component {
         this.setState({
             isLoading: false
         });
+    }
+
+    sortStagePipelineEnvironments() {
+        if (this.state.stagePipelineEnvironments.length > 0 && this.matchedStageEnvironments.length > 0) {
+            let temporaryStagePipelineEnvironments = [];
+
+            for (let stageEnvironmentName of this.stageEnvironments) {
+                let foundEnvironment = this.state.stagePipelineEnvironments.filter((stagePipelineEnvironment) => 
+                    stagePipelineEnvironment.stageName.toLowerCase() === stageEnvironmentName
+                );
+
+                if (foundEnvironment.length > 0) {
+                    temporaryStagePipelineEnvironments.push(foundEnvironment[0]);
+                }
+            }
+
+            this.setState({
+                stagePipelineEnvironments: temporaryStagePipelineEnvironments
+            });
+        }
     }
 
     generatePipelineUrl(organization, pipeline, branch, run) {
@@ -149,7 +170,7 @@ export class EnvironmentInfoPage extends React.Component {
                                                                        commit.substring(0, 6));
                 
                 let commonEnvironment = this.state.stagePipelineEnvironments.filter((stagePipelineEnvironment) => 
-                    stagePipelineEnvironment.stageName === stage.displayName
+                    stagePipelineEnvironment.stageName.toLowerCase() === stage.displayName
                 );
 
                 if (commonEnvironment.length === 0) {
