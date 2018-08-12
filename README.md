@@ -8,7 +8,7 @@ It uses stage names to determine what constitutes a deploy to an environment.  A
 that the pipeline has made it to Development. Since stage names are flexible, the stage names that represent Dev, QA,
 and Prod can be configured on the global configuration page.  It is a comma delimited list of names. 
 
-## Local Plugin Development Setup
+## Local Plugin Development Setup  
 
 1. Make sure `JDK` is installed and the version is greater than 1.8. Use `javac --version` to check the version.
 2. Make sure `mvn` is install and is greater than 3 by using `mvn --version`.
