@@ -20,11 +20,6 @@ export class EnvironmentInfoPage extends React.Component {
 
     constructor(props) {
         super(props);
-        this.state = {
-            isLoading: true,
-            pipeline: "",
-            stagePipelineEnvironments: []
-        };
     }
 
     async componentWillMount() {
@@ -33,7 +28,11 @@ export class EnvironmentInfoPage extends React.Component {
 
         this.setState({
             activityUrl: `/jenkins/blue/organizations/${this.props.params.organization}/${pipeline}/activity/`,
+            isLoading: true,
+            pipeline: "",
+            stagePipelineEnvironments: [],
         });
+
         const RestPaths = Paths.rest;
         const href = RestPaths.pipeline(this.props.params.organization, pipeline);
         let pipelineResponse = await pipelineService.fetchPipeline(href, { useCache: true, disableCapabilites: false });
