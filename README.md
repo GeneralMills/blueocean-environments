@@ -1,6 +1,8 @@
-# Jenkins Blue Ocean Environments
+# Jenkins Blue Ocean Environments (Archived)
 
 Adds a page to Blue Ocean that displays what environments (Dev, QA, Prod) a pipeline has been deployed to.
+
+### Note: this repository has been archived as it is no longer maintained.
 
 ## Overview
 
